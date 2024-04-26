@@ -12,11 +12,24 @@ from app import DATABASE_URL
 from models import StatusEnum, GenericTask, TaskContent
 from serializers import TaskContentSchema
 from validate_input import GenericTaskInput
-
+from pydantic import BaseModel
 # Create the database engine
 engine = create_engine(DATABASE_URL, echo=True)
 
 app = FastAPI()
+
+class ErrorDetail(BaseModel):
+    """Error details model."""
+    loc: typ.List[str]
+    msg: str
+    type: str
+
+
+class TaskValidationError(BaseModel):
+    """Task validation error model."""
+    message: str
+    errors: typ.List[ErrorDetail]
+
 
 def parse_date(date_str: str) -> date:
     """Function to parse date string."""
@@ -28,7 +41,7 @@ def parse_date(date_str: str) -> date:
 
 
 @app.post("/create-task/")
-async def create_task(task_dict: typ.Dict) -> typ.Dict[str, str]:
+async def create_task(task_dict: typ.Dict, response_model=typ.Union[typ.Type[TaskValidationError], typ.Dict[str, str]]) -> typ.Any:
     """Endpoint to create a task."""
     task_data = task_dict.get('task')
     try:
@@ -47,7 +60,15 @@ async def create_task(task_dict: typ.Dict) -> typ.Dict[str, str]:
         return {
             'message': "Validation failed!",
             # str() because of *** TypeError: Object of type ValueError is not JSON serializable
-            'errors': str(e.errors()),
+            'errors': [
+                {
+                    'type': error['type'],
+                    'loc': error['loc'],
+                    'msg': error['msg'],
+                }
+                for error in
+                e.errors()
+            ],
         }
     else:
         # Validation successful, save the data to the database

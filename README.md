@@ -10,6 +10,8 @@ TODO
 
 # Undo Mechanism
 post, put, delete
+post `/undo` undelete
+post `/undo/<identifier>`
 TODO
 
 # pylintrc
