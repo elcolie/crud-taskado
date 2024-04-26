@@ -50,3 +50,7 @@ class GenericTaskInput(BaseModel):
             .select()
         )
 
+
+class UpdateTask(GenericTaskInput):
+    """Pydantic model to validate input data for updating a task."""
+    id: int

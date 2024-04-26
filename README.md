@@ -8,10 +8,14 @@
 # Postman collection
 TODO
 
+# ListView
+`filter` and `pagination`
+
 # Undo Mechanism
-post, put, delete
-post `/undo` undelete
-post `/undo/<identifier>`
+post = make new instance with new `identifier` 
+put = make new instance with new `identifier`, but reuse the old `id`.
+delete = mark as deleted.
+post `/undo/<identifier>` = undelete the instance
 TODO
 
 # pylintrc

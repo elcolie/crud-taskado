@@ -1,3 +1,4 @@
+import logging
 import typing as typ
 from datetime import date
 import uuid
@@ -11,8 +12,18 @@ from sqlmodel import Session
 from app import DATABASE_URL
 from models import StatusEnum, GenericTask, TaskContent
 from serializers import TaskContentSchema
-from validate_input import GenericTaskInput
+from validate_input import GenericTaskInput, UpdateTask
 from pydantic import BaseModel
+
+import logging
+
+# Configure the logger
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Create a logger object
+logger = logging.getLogger(__name__)
+
 # Create the database engine
 engine = create_engine(DATABASE_URL, echo=True)
 
@@ -40,26 +51,16 @@ def parse_date(date_str: str) -> date:
         raise ValidationError("Invalid date format. Must be in 'YYYY-MM-DD' format.")
 
 
-@app.post("/create-task/")
-async def create_task(task_dict: typ.Dict, response_model=typ.Union[typ.Type[TaskValidationError], typ.Dict[str, str]]) -> typ.Any:
+@app.post("/create-task/", response_model=typ.Union[typ.Type[TaskValidationError], typ.Dict[str, str]])
+async def create_task(task_input: GenericTaskInput) -> typ.Any:
     """Endpoint to create a task."""
-    task_data = task_dict.get('task')
     try:
-        task_data = {  # Assuming you have some data here
-            "title": task_data.get('title'),
-            "description": task_data.get('description'),
-            "due_date": task_data.get('due_date'),
-            "status": task_data.get('status'),
-            # "created_by": task_data.get('created_by'),
-        }
-        instance = GenericTaskInput(**task_data)
-        print("Validation successful!")
+        instance = GenericTaskInput(**task_input.dict())
+        logger.info("Validation successful!")
     except ValidationError as e:
-        print(f"Validation failed: {e}")
-        # Very curious why I can't return a list of errors.
+        logger.error(f"Validation failed: {e}")
         return {
             'message': "Validation failed!",
-            # str() because of *** TypeError: Object of type ValueError is not JSON serializable
             'errors': [
                 {
                     'type': error['type'],
@@ -74,7 +75,7 @@ async def create_task(task_dict: typ.Dict, response_model=typ.Union[typ.Type[Tas
         # Validation successful, save the data to the database
         with Session(engine) as session:
             # Parse the due_date string to date object
-            task_data['due_date'] = parse_date(instance.due_date)
+            instance.due_date = parse_date(instance.due_date)
 
             # Generate a unique identifier for the task
             _identifier = uuid.uuid4().hex
@@ -91,7 +92,7 @@ async def create_task(task_dict: typ.Dict, response_model=typ.Union[typ.Type[Tas
             new_content = TaskContent(**{
                 'id': id,
                 'identifier': _identifier,
-                **task_data,
+                **instance.dict(),
             })
             session.add(new_task)
             session.add(new_content)
@@ -101,6 +102,7 @@ async def create_task(task_dict: typ.Dict, response_model=typ.Union[typ.Type[Tas
     }
 
 
+# TODO: filter and pagination.
 @app.get("/")
 async def list_tasks() -> typ.Dict[str, typ.Any]:
     """Endpoint to list all tasks."""
@@ -117,6 +119,7 @@ async def list_tasks() -> typ.Dict[str, typ.Any]:
         )
         serialized_tasks = task_content_schema.dump(tasks, many=True)
         return {
+            'count': len(serialized_tasks),
             'tasks': serialized_tasks,
         }
 
@@ -131,26 +134,52 @@ async def get_task(task_id: int):
             'task': serialized_task,
         }
 
-@app.put("/{task_id}")
-async def update_task(task_id: int, payload: typ.Dict):
+@app.put("/", response_model=typ.Union[typ.Type[TaskValidationError], typ.Dict[str, str]])
+async def update_task(payload: UpdateTask) -> typ.Any:
     """Endpoint to update a task."""
-    with Session(engine) as session:
-        task_content_schema = TaskContentSchema()
-        task = session.query(TaskContent).filter(TaskContent.id == task_id).first()
 
-        # In order to do undo mechanism. Create a new instance of the task.
-        new_identifier = uuid.uuid4().hex
-        new_task = GenericTask(**{
-            'id': task.id,  # Use the same id
-            'identifier': new_identifier, # Generate a new identifier
-        })
+    import ipdb;
+    ipdb.set_trace()
+    try:
+        task_content_instance = GenericTaskInput(**payload.dict())
+    except ValidationError as e:
+        logger.error(f"Validation failed UPDATE method: {e}")
+        return {
+            'message': "Validation failed!",
+            # 'errors': [
+            #     {
+            #         'type': error['type'],
+            #         'loc': error['loc'],
+            #         'msg': error['msg'],
+            #     }
+            #     for error in
+            #     e.errors()
+            # ],
+        }
+    else:
+        with Session(engine) as session:
+            task = session.query(TaskContent).filter(TaskContent.id == payload.id).first()
 
-        new_content = TaskContent(**{
-            'id': task.id,
-            'identifier': new_identifier,
-            **payload,
-        })
-        session.add(new_task)
-        session.add(new_content)
-        session.commit()
+            # In order to do undo mechanism. Create a new instance of the task.
+            new_identifier = uuid.uuid4().hex
+            new_task = GenericTask(**{
+                'id': task.id,  # Use the same id
+                'identifier': new_identifier, # Generate a new identifier
+            })
 
+            # Create new revision.
+            new_content = TaskContent(**{
+                'id': task.id,  # Use existing id
+                'identifier': new_identifier,
+                'title': task_content_instance.title,   # Update the rest of the payload.
+                'description': task_content_instance.description,
+                'due_date': parse_date(task_content_instance.due_date),
+                'status': task_content_instance.status,
+                'created_by': task_content_instance.created_by,
+            })
+            session.add(new_task)
+            session.add(new_content)
+            session.commit()
+            return {
+                'message': "Instance updated successfully!",
+            }
