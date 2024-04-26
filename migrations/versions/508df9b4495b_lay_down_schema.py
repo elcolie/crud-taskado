@@ -1,8 +1,8 @@
-"""Split Task and Content.
+"""Lay down schema
 
-Revision ID: 98e5b8a5ef6d
+Revision ID: 508df9b4495b
 Revises: 
-Create Date: 2024-04-26 14:54:51.409877
+Create Date: 2024-04-26 17:29:12.273732
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = '98e5b8a5ef6d'
+revision: str = '508df9b4495b'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,6 +24,8 @@ def upgrade() -> None:
     op.create_table('generictask',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('identifier', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('identifier')
     )
     op.create_table('user',

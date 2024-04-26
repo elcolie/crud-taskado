@@ -5,3 +5,4 @@ psycopg2-binary
 sqlmodel
 python-decouple
 pydantic
+marshmallow-sqlalchemy
