@@ -12,13 +12,20 @@ class StatusEnum(enum.Enum):
 
 class GenericTask(SQLModel, table=True):
     """Model class for GenericTask."""
-    id: int = Field(primary_key=True)
+    id: int = Field(primary_key=False)  # For human use
+    identifier: str = Field(primary_key=True)   # For redo mechanism
+
+
+class TaskContent(SQLModel, table=True):
+    """Model class for TaskContent."""
+    identifier: str = Field(primary_key=True)   # For redo mechanism
+    id: int = Field(primary_key=False)  # For human use
     title: str = Field(nullable=True)
     description: str = Field(nullable=True)
     due_date: date = Field(default=None, nullable=True)
     status: StatusEnum = Field(default=StatusEnum.pending)
     created_by: int = Field(nullable=True, default=None, foreign_key="user.id")
-    created_at: datetime = Field(default=date.today())
+    created_at: datetime = Field(default=date.today())  # For redo mechanism
     updated_at: datetime = Field(default=date.today())
 
 
