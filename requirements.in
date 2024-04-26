@@ -1,0 +1,7 @@
+fastapi[all]
+uvicorn
+alembic
+psycopg2-binary
+sqlmodel
+python-decouple
+pydantic
