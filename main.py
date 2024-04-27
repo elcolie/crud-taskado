@@ -3,13 +3,16 @@ import typing as typ
 import uuid
 from datetime import date
 
-from fastapi import FastAPI, HTTPException
+import sqlalchemy
+from fastapi import FastAPI, status
+from fastapi import HTTPException
 from pydantic import BaseModel
 from pydantic import ValidationError
 from sqlalchemy import create_engine
-from sqlalchemy import func
+from sqlalchemy import distinct
+from sqlalchemy import func, and_
+from sqlalchemy import select
 from sqlmodel import Session
-from sqlalchemy import and_
 
 # Database connection url
 from app import DATABASE_URL
@@ -56,7 +59,7 @@ def parse_date(date_str: str) -> date:
         raise ValidationError("Invalid date format. Must be in 'YYYY-MM-DD' format.")
 
 
-@app.post("/create-task/")
+@app.post("/create-task/", status_code=status.HTTP_201_CREATED)
 async def create_task(task_input: GenericTaskInput) -> typ.Union[
     TaskSuccessMessage,
 ]:
@@ -78,7 +81,7 @@ async def create_task(task_input: GenericTaskInput) -> typ.Union[
             ],
         )
         # BaseModel raises 422 status code. Raise here to be safe.
-        raise HTTPException(status_code=404, detail=out_payload)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=out_payload)
     else:
         # Validation successful, save the data to the database
         with Session(engine) as session:
@@ -125,7 +128,7 @@ async def update_task(payload: UpdateTask) -> typ.Union[
                 for error in e.errors()
             ],
         )
-        raise HTTPException(status_code=404, detail=out_payload)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=out_payload)
     else:
         with Session(engine) as session:
             task = session.query(TaskContent).filter(TaskContent.id == payload.id).first()
@@ -157,7 +160,7 @@ async def delete_task(task_id: int) -> typ.Union[TaskSuccessMessage]:
         task_instance = CheckTaskId(id=task_id)
     except ValidationError as e:
         logger.error(f"Validation failed DELETE method: {e}")
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     else:
         with Session(engine) as session:
             task = session.query(TaskContent).filter(TaskContent.id == task_instance.id).first()
@@ -177,7 +180,7 @@ async def get_task(task_id: int) -> typ.Union[
         _ = CheckTaskId(id=task_id)
     except ValidationError as e:
         logger.error(f"Validation failed GET method: {e}")
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     else:
         with Session(engine) as session:
             task_content_schema = TaskContentSchema()
@@ -187,7 +190,7 @@ async def get_task(task_id: int) -> typ.Union[
             ).first()
             # Task is deleted. Then id is here, but is_deleted is True.
             if task is None:
-                raise HTTPException(status_code=404, detail="Task is deleted")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task is deleted")
             serialized_task = task_content_schema.dump(task)
 
             # Get the status enum string
@@ -204,37 +207,46 @@ async def get_task(task_id: int) -> typ.Union[
             return out_payload
 
 
-# TODO: filter and pagination.
+def get_queryset() -> sqlalchemy.orm.query.Query:
+    """Get the queryset of tasks."""
+    with (Session(engine) as session):
+        # List out add id that is deleted.
+        deleted_id_list = session.query(distinct(TaskContent.id)).filter(TaskContent.is_deleted == True).all()
+
+        # List out all undeleted tasks.
+        # Extract the ids from the id_list
+        ids = [id_[0] for id_ in deleted_id_list]
+
+        # Get only the latest revision of each task
+        stmt = (
+            select(
+                # Group by id and get the latest created_at
+                TaskContent.id, func.max(TaskContent.created_at).label('max_created_at')
+            )
+            # Exclude the deleted tasks.
+            .where(~TaskContent.id.in_(ids))
+            .group_by(TaskContent.id)
+        )
+
+        # Join the result to get the full task content
+        queryset = session.query(TaskContent).join(
+            stmt,
+            and_(
+                TaskContent.id == stmt.c.id,
+                TaskContent.created_at == stmt.c.max_created_at,
+            )
+        )
+        return queryset
+
+
+# TODO: query, filter and pagination.
 @app.get("/")
 async def list_tasks() -> typ.Dict[str, typ.Any]:
     """Endpoint to list all tasks."""
-    with Session(engine) as session:
-        task_content_schema = TaskContentSchema()
-        # tasks = (
-        #     session.query(TaskContent)
-        #     .filter(
-        #         TaskContent.id.in_(
-        #             session.query(GenericTask.id).filter(GenericTask.is_deleted == False)
-        #         )
-        #     )
-        #     .all()
-        # )
-        # Subquery to get the latest created_at for each identifier
-        subquery = session.query(TaskContent.identifier, func.max(TaskContent.created_at).label('max_created_at')). \
-            filter(TaskContent.is_deleted == False). \
-            group_by(TaskContent.identifier). \
-            subquery()
-
-        # Query to fetch the latest undeleted TaskContent entries
-        latest_task_contents = session.query(TaskContent). \
-            join(subquery, and_(TaskContent.identifier == subquery.c.identifier,
-                                TaskContent.created_at == subquery.c.max_created_at)). \
-            filter(TaskContent.is_deleted == False). \
-            all()
-
-        tasks = latest_task_contents
-        serialized_tasks = task_content_schema.dump(tasks, many=True)
-        return {
-            'count': len(serialized_tasks),
-            'tasks': serialized_tasks,
-        }
+    task_content_schema = TaskContentSchema()
+    tasks = get_queryset()
+    serialized_tasks = task_content_schema.dump(tasks, many=True)
+    return {
+        'count': len(serialized_tasks),
+        'tasks': serialized_tasks,
+    }

@@ -3,6 +3,7 @@ import uuid
 from datetime import date, datetime
 
 import sqlalchemy
+from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlmodel import Session
@@ -17,7 +18,8 @@ client = TestClient(app)
 engine = create_engine(DATABASE_URL, echo=True)
 
 
-def create_task() -> int:
+# Since `create_task()` is own by API. Change a bit to this one.
+def manual_create_task() -> int:
     """Helper function to create a task with user."""
     user_id = 10
     with Session(engine) as session:
@@ -60,16 +62,16 @@ def create_task() -> int:
 
 def test_delete_task() -> None:
     """Test happy path for deleting a task."""
-    task_id = create_task()
+    task_id = manual_create_task()
     response = client.delete(f"/{task_id}")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"message": "Instance deleted successfully!"}
 
 
 def test_delete_invalid_task() -> None:
     """Test invalid task id."""
     response = client.delete("/999")
-    assert response.status_code == 404
+    assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Task not found"}
 
 

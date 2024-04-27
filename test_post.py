@@ -5,7 +5,7 @@ I made this script because I am lazy to manually test the POST request to create
 NOT INTENTIONALLY TO RUN IN THE CI/CD PIPELINE.
 """
 from fastapi.testclient import TestClient
-
+from fastapi import status
 from main import app
 
 client = TestClient(app)
@@ -20,7 +20,7 @@ def test_post_create_task() -> None:
         "due_date": "2022-12-31",
         "created_by": 1
     })
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_201_CREATED
     assert response.json() == {"message": "Instance created successfully!"}
 
 
@@ -32,7 +32,7 @@ def test_post_create_task_no_created_by() -> None:
         "status": "pending",
         "due_date": "2022-12-31",
     })
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_201_CREATED
     assert response.json() == {"message": "Instance created successfully!"}
 
 
@@ -45,7 +45,7 @@ def test_post_invalid_created_by() -> None:
         "due_date": "2022-12-31",
         "created_by": 999
     })
-    assert response.status_code == 422
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert response.json() == {'detail': [{'type': 'value_error', 'loc': ['body', 'created_by'], 'msg': 'Value error, User with this id does not exist', 'input': 999, 'ctx': {'error': {}}}]}
 
 
@@ -57,7 +57,7 @@ def test_invalid_date_format() -> None:
         "status": "pending",
         "due_date": "2022-12-31T00:00:00",
     })
-    assert response.status_code == 422
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert response.json() == {'detail': [{'type': 'value_error', 'loc': ['body', 'due_date'], 'msg': "Value error, Invalid date format. Must be in 'YYYY-MM-DD' format.", 'input': '2022-12-31T00:00:00', 'ctx': {'error': {}}}]}
 
 
@@ -69,7 +69,7 @@ def test_invalid_status() -> None:
         "status": "invalid_status",
         "due_date": "2022-12-31",
     })
-    assert response.status_code == 422
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert response.json() == {'detail': [{'type': 'enum', 'loc': ['body', 'status'], 'msg': "Input should be 'pending', 'in_progress' or 'completed'", 'input': 'invalid_status', 'ctx': {'expected': "'pending', 'in_progress' or 'completed'"}}]}
 
 
@@ -82,7 +82,7 @@ def test_invalid_status_and_due_date_and_wrong_created_by() -> None:
         "due_date": "2022-12-31T00:00:00",
         "created_by": 999
     })
-    assert response.status_code == 422
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert 3 == len(response.json()['detail'])
     assert response.json() == {'detail': [{'type': 'enum', 'loc': ['body', 'status'], 'msg': "Input should be 'pending', 'in_progress' or 'completed'", 'input': 'invalid_status', 'ctx': {'expected': "'pending', 'in_progress' or 'completed'"}}, {'type': 'value_error', 'loc': ['body', 'due_date'], 'msg': "Value error, Invalid date format. Must be in 'YYYY-MM-DD' format.", 'input': '2022-12-31T00:00:00', 'ctx': {'error': {}}}, {'type': 'value_error', 'loc': ['body', 'created_by'], 'msg': 'Value error, User with this id does not exist', 'input': 999, 'ctx': {'error': {}}}]}
 
