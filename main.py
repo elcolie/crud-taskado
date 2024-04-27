@@ -104,6 +104,52 @@ async def create_task(task_input: GenericTaskInput) -> typ.Union[
         )
 
 
+@app.put("/")
+async def update_task(payload: UpdateTask) -> typ.Union[
+    TaskSuccessMessage,
+    TaskValidationError,
+]:
+    """Endpoint to update a task."""
+    try:
+        task_content_instance = UpdateTask(**payload.dict())
+    except ValidationError as e:
+        logger.error(f"Validation failed UPDATE method: {e}")
+        out_payload = TaskValidationError(
+            message="Validation failed!",
+            errors=[
+                ErrorDetail(
+                    loc=error['loc'],
+                    msg=error['msg'],
+                    type=error['type'],
+                )
+                for error in e.errors()
+            ],
+        )
+        return out_payload
+    else:
+        with Session(engine) as session:
+            task = session.query(TaskContent).filter(TaskContent.id == payload.id).first()
+
+            # In order to do undo mechanism. Create a new instance of the task.
+            new_identifier = uuid.uuid4().hex
+
+            # Create new revision.
+            new_content = TaskContent(**{
+                'id': task.id,  # Use existing id
+                'identifier': new_identifier,
+                'title': task_content_instance.title,   # Update the rest of the payload.
+                'description': task_content_instance.description,
+                'due_date': parse_date(task_content_instance.due_date),
+                'status': task_content_instance.status,
+                'created_by': task_content_instance.created_by,
+            })
+            session.add(new_content)
+            session.commit()
+            return TaskSuccessMessage(
+                message="Instance updated successfully!",
+            )
+
+
 
 # TODO: filter and pagination.
 @app.get("/")
@@ -152,52 +198,3 @@ async def get_task(task_id: int):
             'task': serialized_task,
         }
 
-@app.put("/", response_model=typ.Union[typ.Type[TaskValidationError], typ.Dict[str, str]])
-async def update_task(payload: UpdateTask) -> typ.Any:
-    """Endpoint to update a task."""
-
-    import ipdb;
-    ipdb.set_trace()
-    try:
-        task_content_instance = GenericTaskInput(**payload.dict())
-    except ValidationError as e:
-        logger.error(f"Validation failed UPDATE method: {e}")
-        return {
-            'message': "Validation failed!",
-            # 'errors': [
-            #     {
-            #         'type': error['type'],
-            #         'loc': error['loc'],
-            #         'msg': error['msg'],
-            #     }
-            #     for error in
-            #     e.errors()
-            # ],
-        }
-    else:
-        with Session(engine) as session:
-            task = session.query(TaskContent).filter(TaskContent.id == payload.id).first()
-
-            # In order to do undo mechanism. Create a new instance of the task.
-            new_identifier = uuid.uuid4().hex
-            new_task = GenericTask(**{
-                'id': task.id,  # Use the same id
-                'identifier': new_identifier, # Generate a new identifier
-            })
-
-            # Create new revision.
-            new_content = TaskContent(**{
-                'id': task.id,  # Use existing id
-                'identifier': new_identifier,
-                'title': task_content_instance.title,   # Update the rest of the payload.
-                'description': task_content_instance.description,
-                'due_date': parse_date(task_content_instance.due_date),
-                'status': task_content_instance.status,
-                'created_by': task_content_instance.created_by,
-            })
-            session.add(new_task)
-            session.add(new_content)
-            session.commit()
-            return {
-                'message': "Instance updated successfully!",
-            }

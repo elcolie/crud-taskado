@@ -9,7 +9,7 @@ from sqlalchemy import exists
 from sqlmodel import Session
 
 from app import DATABASE_URL
-from models import StatusEnum, User
+from models import StatusEnum, User, TaskContent
 
 
 class GenericTaskInput(BaseModel):
@@ -55,3 +55,18 @@ class GenericTaskInput(BaseModel):
 class UpdateTask(GenericTaskInput):
     """Pydantic model to validate input data for updating a task."""
     id: int
+
+    @field_validator("id")
+    def task_id_exists_in_db(cls, task_id: int) -> typ.Optional[int]:
+        """Check if the task id exists in the database."""
+        engine = create_engine(DATABASE_URL, echo=True)
+        session = Session(engine)
+        is_exists = session.scalar(
+            exists()
+            .where(TaskContent.id == task_id)
+            .select()
+        )
+        if not is_exists:
+            raise ValueError("Task with this id does not exist")
+        return task_id
+
