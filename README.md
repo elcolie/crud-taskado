@@ -20,3 +20,9 @@ TODO
 
 # pylintrc
 TODO
+
+# Test
+Rather than using POSTMAN click. I prefer run the script.
+It mutates the database. Then be careful.
+
+You need to add `User` first start with `id=1`.

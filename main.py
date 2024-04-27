@@ -84,7 +84,6 @@ async def create_task(task_input: GenericTaskInput) -> typ.Any:
             _max_id = session.query(func.max(TaskContent.id)).scalar()
             max_id = 0 if _max_id is None else _max_id
             id = max_id + 1
-
             task_content = TaskContent(**{
                 'id': id,
                 'identifier': _identifier,

@@ -19,8 +19,8 @@ class GenericTaskInput(BaseModel):
     status: StatusEnum = StatusEnum.pending
     due_date: str = None
     created_by: typ.Optional[int] = None
-    created_at: datetime = Field(default_factory=datetime.today)
-    updated_at: datetime = Field(default_factory=datetime.today)
+    # created_at: datetime = Field(default_factory=datetime.today)
+    # updated_at: datetime = Field(default_factory=datetime.today)
 
     @field_validator("due_date")
     def check_due_date_format(cls, value: str) -> str:
@@ -36,6 +36,7 @@ class GenericTaskInput(BaseModel):
     def user_exists(cls, value: int) -> None:
         if value is not None and not cls.user_exists_in_db(value):
             raise ValueError("User with this id does not exist")
+        return value
 
     @classmethod
     def user_exists_in_db(cls, user_id: int) -> typ.Optional[int]:
