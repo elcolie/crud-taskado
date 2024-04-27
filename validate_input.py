@@ -2,7 +2,7 @@
 import typing as typ
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pydantic import field_validator
 from sqlalchemy import create_engine
 from sqlalchemy import exists
@@ -19,6 +19,7 @@ class GenericTaskInput(BaseModel):
     status: StatusEnum = StatusEnum.pending
     due_date: str = None
     created_by: typ.Optional[int] = None
+
     # created_at: datetime = Field(default_factory=datetime.today)
     # updated_at: datetime = Field(default_factory=datetime.today)
 
@@ -35,6 +36,7 @@ class GenericTaskInput(BaseModel):
     @field_validator("created_by")
     def user_exists(cls, value: int) -> None:
         if value is not None and not cls.user_exists_in_db(value):
+            # 422 status code raise in the BaseModel.
             raise ValueError("User with this id does not exist")
         return value
 
@@ -52,8 +54,8 @@ class GenericTaskInput(BaseModel):
         )
 
 
-class UpdateTask(GenericTaskInput):
-    """Pydantic model to validate input data for updating a task."""
+class CheckTaskId(BaseModel):
+    """Pydantic model to validate input data for DELETE. It can be reused with PUT too."""
     id: int
 
     @field_validator("id")
@@ -70,3 +72,7 @@ class UpdateTask(GenericTaskInput):
             raise ValueError("Task with this id does not exist")
         return task_id
 
+
+class UpdateTask(CheckTaskId, GenericTaskInput):
+    """Include id to the model by mixin."""
+    pass

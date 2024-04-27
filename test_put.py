@@ -1,7 +1,6 @@
 """
 Test PUT method for the API.
 
-This script tests the PUT method for the API. It tests the happy path for updating a task, updating a task without created_by, and updating a task with an invalid created_by. It also tests the invalid date format and invalid status.
 Instead of clicking the POSTMAN I run this script instead.
 Be careful, this script is not intended to run in the CI/CD pipeline.
 Because it mutates the database.
@@ -9,14 +8,16 @@ Because it mutates the database.
 from fastapi.testclient import TestClient
 
 from main import app
+from test_delete import create_task
 
 client = TestClient(app)
 
 
 def test_update_task() -> None:
     """Test happy path for updating a task."""
+    task_id = create_task()
     response = client.put("/", json={
-        "id": 5,
+        "id": task_id,
         "title": "New updated title",
         "description": "New desc",
         "status": "pending",
@@ -29,8 +30,9 @@ def test_update_task() -> None:
 
 def test_wrong_due_date() -> None:
     """Test invalid date format."""
+    task_id = create_task()
     response = client.put("/", json={
-        "id": 6,
+        "id": task_id,
         "title": "New updated title",
         "description": "New desc",
         "status": "pending",
@@ -44,8 +46,9 @@ def test_wrong_due_date() -> None:
 
 def test_wrong_status_and_due_date() -> None:
     """Test wrong more than 1 issue."""
+    task_id = create_task()
     response = client.put("/", json={
-        "id": 6,
+        "id": task_id,
         "title": "New updated title",
         "description": "New desc",
         "status": "Invalid status",
@@ -70,7 +73,9 @@ def test_wrong_id() -> None:
         "due_date": "2022-12-31",
     })
     assert response.status_code == 422
-    assert response.json() == {'detail': [{'type': 'value_error', 'loc': ['body', 'id'], 'msg': 'Value error, Task with this id does not exist', 'input': -6, 'ctx': {'error': {}}}]}
+    assert response.json() == {'detail': [
+        {'type': 'value_error', 'loc': ['body', 'id'], 'msg': 'Value error, Task with this id does not exist',
+         'input': -6, 'ctx': {'error': {}}}]}
 
 
 def test_wrong_id_by_string() -> None:
@@ -83,7 +88,9 @@ def test_wrong_id_by_string() -> None:
         "due_date": "2022-12-31",
     })
     assert response.status_code == 422
-    assert response.json() == {'detail': [{'type': 'int_parsing', 'loc': ['body', 'id'], 'msg': 'Input should be a valid integer, unable to parse string as an integer', 'input': 'wrong_id'}]}
+    assert response.json() == {'detail': [{'type': 'int_parsing', 'loc': ['body', 'id'],
+                                           'msg': 'Input should be a valid integer, unable to parse string as an integer',
+                                           'input': 'wrong_id'}]}
 
 
 if __name__ == "__main__":

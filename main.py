@@ -1,21 +1,21 @@
 import logging
 import typing as typ
-from datetime import date
 import uuid
-from fastapi import FastAPI
-from sqlalchemy import func
+from datetime import date
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from pydantic import ValidationError
 from sqlalchemy import create_engine
+from sqlalchemy import func
 from sqlmodel import Session
+from sqlalchemy import and_
 
 # Database connection url
 from app import DATABASE_URL
 from models import StatusEnum, TaskContent
 from serializers import TaskContentSchema
-from validate_input import GenericTaskInput, UpdateTask
-from pydantic import BaseModel
-
-import logging
+from validate_input import GenericTaskInput, UpdateTask, CheckTaskId
 
 # Configure the logger
 logging.basicConfig(level=logging.DEBUG,
@@ -59,7 +59,6 @@ def parse_date(date_str: str) -> date:
 @app.post("/create-task/")
 async def create_task(task_input: GenericTaskInput) -> typ.Union[
     TaskSuccessMessage,
-    TaskValidationError,
 ]:
     """Endpoint to create a task."""
     try:
@@ -78,7 +77,8 @@ async def create_task(task_input: GenericTaskInput) -> typ.Union[
                 for error in e.errors()
             ],
         )
-        return out_payload
+        # BaseModel raises 422 status code. Raise here to be safe.
+        raise HTTPException(status_code=404, detail=out_payload)
     else:
         # Validation successful, save the data to the database
         with Session(engine) as session:
@@ -100,8 +100,8 @@ async def create_task(task_input: GenericTaskInput) -> typ.Union[
             session.add(task_content)
             session.commit()
     return TaskSuccessMessage(
-            message="Instance created successfully!",
-        )
+        message="Instance created successfully!",
+    )
 
 
 @app.put("/")
@@ -125,7 +125,7 @@ async def update_task(payload: UpdateTask) -> typ.Union[
                 for error in e.errors()
             ],
         )
-        return out_payload
+        raise HTTPException(status_code=404, detail=out_payload)
     else:
         with Session(engine) as session:
             task = session.query(TaskContent).filter(TaskContent.id == payload.id).first()
@@ -137,7 +137,7 @@ async def update_task(payload: UpdateTask) -> typ.Union[
             new_content = TaskContent(**{
                 'id': task.id,  # Use existing id
                 'identifier': new_identifier,
-                'title': task_content_instance.title,   # Update the rest of the payload.
+                'title': task_content_instance.title,  # Update the rest of the payload.
                 'description': task_content_instance.description,
                 'due_date': parse_date(task_content_instance.due_date),
                 'status': task_content_instance.status,
@@ -149,6 +149,59 @@ async def update_task(payload: UpdateTask) -> typ.Union[
                 message="Instance updated successfully!",
             )
 
+
+@app.delete("/{task_id}")
+async def delete_task(task_id: int) -> typ.Union[TaskSuccessMessage]:
+    """Endpoint to delete a task."""
+    try:
+        task_instance = CheckTaskId(id=task_id)
+    except ValidationError as e:
+        logger.error(f"Validation failed DELETE method: {e}")
+        raise HTTPException(status_code=404, detail="Task not found")
+    else:
+        with Session(engine) as session:
+            task = session.query(TaskContent).filter(TaskContent.id == task_instance.id).first()
+            task.is_deleted = True
+            session.commit()
+            return TaskSuccessMessage(
+                message="Instance deleted successfully!",
+            )
+
+
+@app.get("/{task_id}")
+async def get_task(task_id: int) -> typ.Union[
+    UpdateTask,
+]:
+    """Endpoint to get a task by id."""
+    try:
+        _ = CheckTaskId(id=task_id)
+    except ValidationError as e:
+        logger.error(f"Validation failed GET method: {e}")
+        raise HTTPException(status_code=404, detail="Task not found")
+    else:
+        with Session(engine) as session:
+            task_content_schema = TaskContentSchema()
+            task = session.query(TaskContent).filter(
+                TaskContent.id == task_id,
+                TaskContent.is_deleted == False,
+            ).first()
+            # Task is deleted. Then id is here, but is_deleted is True.
+            if task is None:
+                raise HTTPException(status_code=404, detail="Task is deleted")
+            serialized_task = task_content_schema.dump(task)
+
+            # Get the status enum string
+            enum_string = serialized_task['status']
+
+            # Split the string into the enum class name and the member name
+            _, enum_member_name = enum_string.split('.')
+
+            # Get the enum member by its name within the enum class
+            enum_member = getattr(StatusEnum, enum_member_name)
+
+            serialized_task['status'] = enum_member
+            out_payload = UpdateTask(**serialized_task)
+            return out_payload
 
 
 # TODO: filter and pagination.
@@ -172,7 +225,6 @@ async def list_tasks() -> typ.Dict[str, typ.Any]:
             group_by(TaskContent.identifier). \
             subquery()
 
-        from sqlalchemy import and_
         # Query to fetch the latest undeleted TaskContent entries
         latest_task_contents = session.query(TaskContent). \
             join(subquery, and_(TaskContent.identifier == subquery.c.identifier,
@@ -186,15 +238,3 @@ async def list_tasks() -> typ.Dict[str, typ.Any]:
             'count': len(serialized_tasks),
             'tasks': serialized_tasks,
         }
-
-@app.get("/task/{task_id}")
-async def get_task(task_id: int):
-    """Endpoint to get a task by id."""
-    with Session(engine) as session:
-        task_content_schema = TaskContentSchema()
-        task = session.query(TaskContent).filter(TaskContent.id == task_id).first()
-        serialized_task = task_content_schema.dump(task)
-        return {
-            'task': serialized_task,
-        }
-
