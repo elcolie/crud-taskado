@@ -17,7 +17,9 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from app import SQLModel
+from models import SQLModel
+from models import TaskContent, User    # Must declare here. Otherwise, it will not be detected.
+
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata
 

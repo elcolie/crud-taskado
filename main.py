@@ -10,7 +10,7 @@ from sqlmodel import Session
 
 # Database connection url
 from app import DATABASE_URL
-from models import StatusEnum, GenericTask, TaskContent
+from models import StatusEnum, TaskContent
 from serializers import TaskContentSchema
 from validate_input import GenericTaskInput, UpdateTask
 from pydantic import BaseModel
@@ -81,21 +81,16 @@ async def create_task(task_input: GenericTaskInput) -> typ.Any:
             _identifier = uuid.uuid4().hex
 
             # id is for human reference, identifier is for redo mechanism
-            _max_id = session.query(func.max(GenericTask.id)).scalar()
+            _max_id = session.query(func.max(TaskContent.id)).scalar()
             max_id = 0 if _max_id is None else _max_id
             id = max_id + 1
 
-            new_task = GenericTask(**{
-                'id': id,
-                'identifier': _identifier,
-            })
-            new_content = TaskContent(**{
+            task_content = TaskContent(**{
                 'id': id,
                 'identifier': _identifier,
                 **instance.dict(),
             })
-            session.add(new_task)
-            session.add(new_content)
+            session.add(task_content)
             session.commit()
     return {
         'message': "Instance created successfully!",
@@ -108,15 +103,30 @@ async def list_tasks() -> typ.Dict[str, typ.Any]:
     """Endpoint to list all tasks."""
     with Session(engine) as session:
         task_content_schema = TaskContentSchema()
-        tasks = (
-            session.query(TaskContent)
-            .filter(
-                TaskContent.id.in_(
-                    session.query(GenericTask.id).filter(GenericTask.is_deleted == False)
-                )
-            )
-            .all()
-        )
+        # tasks = (
+        #     session.query(TaskContent)
+        #     .filter(
+        #         TaskContent.id.in_(
+        #             session.query(GenericTask.id).filter(GenericTask.is_deleted == False)
+        #         )
+        #     )
+        #     .all()
+        # )
+        # Subquery to get the latest created_at for each identifier
+        subquery = session.query(TaskContent.identifier, func.max(TaskContent.created_at).label('max_created_at')). \
+            filter(TaskContent.is_deleted == False). \
+            group_by(TaskContent.identifier). \
+            subquery()
+
+        from sqlalchemy import and_
+        # Query to fetch the latest undeleted TaskContent entries
+        latest_task_contents = session.query(TaskContent). \
+            join(subquery, and_(TaskContent.identifier == subquery.c.identifier,
+                                TaskContent.created_at == subquery.c.max_created_at)). \
+            filter(TaskContent.is_deleted == False). \
+            all()
+
+        tasks = latest_task_contents
         serialized_tasks = task_content_schema.dump(tasks, many=True)
         return {
             'count': len(serialized_tasks),
