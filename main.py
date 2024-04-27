@@ -29,6 +29,7 @@ engine = create_engine(DATABASE_URL, echo=True)
 
 app = FastAPI()
 
+
 class ErrorDetail(BaseModel):
     """Error details model."""
     loc: typ.List[str]
@@ -42,6 +43,10 @@ class TaskValidationError(BaseModel):
     errors: typ.List[ErrorDetail]
 
 
+class TaskSuccessMessage(BaseModel):
+    message: str
+
+
 def parse_date(date_str: str) -> date:
     """Function to parse date string."""
     try:
@@ -51,26 +56,29 @@ def parse_date(date_str: str) -> date:
         raise ValidationError("Invalid date format. Must be in 'YYYY-MM-DD' format.")
 
 
-@app.post("/create-task/", response_model=typ.Union[typ.Type[TaskValidationError], typ.Dict[str, str]])
-async def create_task(task_input: GenericTaskInput) -> typ.Any:
+@app.post("/create-task/")
+async def create_task(task_input: GenericTaskInput) -> typ.Union[
+    TaskSuccessMessage,
+    TaskValidationError,
+]:
     """Endpoint to create a task."""
     try:
         instance = GenericTaskInput(**task_input.dict())
         logger.info("Validation successful!")
     except ValidationError as e:
         logger.error(f"Validation failed: {e}")
-        return {
-            'message': "Validation failed!",
-            'errors': [
-                {
-                    'type': error['type'],
-                    'loc': error['loc'],
-                    'msg': error['msg'],
-                }
-                for error in
-                e.errors()
+        out_payload = TaskValidationError(
+            message="Validation failed!",
+            errors=[
+                ErrorDetail(
+                    loc=error['loc'],
+                    msg=error['msg'],
+                    type=error['type'],
+                )
+                for error in e.errors()
             ],
-        }
+        )
+        return out_payload
     else:
         # Validation successful, save the data to the database
         with Session(engine) as session:
@@ -91,9 +99,10 @@ async def create_task(task_input: GenericTaskInput) -> typ.Any:
             })
             session.add(task_content)
             session.commit()
-    return {
-        'message': "Instance created successfully!",
-    }
+    return TaskSuccessMessage(
+            message="Instance created successfully!",
+        )
+
 
 
 # TODO: filter and pagination.
