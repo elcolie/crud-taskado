@@ -22,6 +22,7 @@ class SmartNested(Nested):
             return {"id": int(getattr(obj, attr + "_id"))}
         return super(SmartNested, self).serialize(attr, obj, accessor)
 
+
 class UserSchema(BaseSchema):
     """Schema for User."""
     class Meta(BaseSchema.Meta):
@@ -45,9 +46,14 @@ class TaskContentSchema(BaseSchema):
     due_date = fields.Date()
     status = fields.String(validate=validate.OneOf([
         StatusEnum.pending, StatusEnum.in_progress, StatusEnum.completed]))
-    created_by = fields.Integer()
+    # created_by = fields.Integer()
+
+    # Replace created_by with nested serialization
+    created_by = fields.Nested(UserSchema, only=("id", "username"))
+
     # TODO:
     # https://stackoverflow.com/questions/78389527/nested-payload-show-blank-dictionary-sqlalchemy-marshmallow
     # created_by = SmartNested(UserSchema)  # Got {}
     # created_by = fields.Nested(UserSchema, attribute="id")  # created_by does not show up.
     # created_by = Nested(UserSchema, attribute="username")  # created_by does not show up.
+

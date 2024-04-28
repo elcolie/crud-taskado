@@ -16,9 +16,13 @@ from sqlmodel import Session
 
 # Database connection url
 from app import DATABASE_URL
-from models import StatusEnum, TaskContent
+from models import StatusEnum, TaskContent, User
 from serializers import TaskContentSchema
 from validate_input import GenericTaskInput, UpdateTask, CheckTaskId
+from sqlalchemy.orm import aliased
+
+# Create an alias for the User table
+UserAlias = aliased(User)
 
 # Configure the logger
 logging.basicConfig(level=logging.DEBUG,
@@ -209,7 +213,7 @@ async def get_task(task_id: int) -> typ.Union[
 
 def get_queryset() -> sqlalchemy.orm.query.Query:
     """Get the queryset of tasks."""
-    with (Session(engine) as session):
+    with Session(engine) as session:
         # List out add id that is deleted.
         deleted_id_list = session.query(distinct(TaskContent.id)).filter(TaskContent.is_deleted == True).all()
 
@@ -228,6 +232,7 @@ def get_queryset() -> sqlalchemy.orm.query.Query:
             .group_by(TaskContent.id)
         )
 
+
         # Join the result to get the full task content
         queryset = session.query(TaskContent).join(
             stmt,
@@ -235,7 +240,12 @@ def get_queryset() -> sqlalchemy.orm.query.Query:
                 TaskContent.id == stmt.c.id,
                 TaskContent.created_at == stmt.c.max_created_at,
             )
-        )
+        ).all()
+
+        print(">>>>>>>>>>>>>>>>>>>>>>>>")
+        # dummy = session.query(TaskContent, UserAlias.username).join(UserAlias).all()
+        # print(dummy)
+
         return queryset
 
 
@@ -243,9 +253,14 @@ def get_queryset() -> sqlalchemy.orm.query.Query:
 @app.get("/")
 async def list_tasks() -> typ.Dict[str, typ.Any]:
     """Endpoint to list all tasks."""
-    task_content_schema = TaskContentSchema()
-    tasks = get_queryset()
-    serialized_tasks = task_content_schema.dump(tasks, many=True)
+    task_content_schema_with_username = TaskContentSchema()
+    tasks_queryset = get_queryset()
+    for idx, i in enumerate(tasks_queryset):
+        print(f"[{idx}]: {i}")
+    serialized_tasks = task_content_schema_with_username.dump(tasks_queryset, many=True)
+    from pprint import pprint
+    import ipdb;
+    ipdb.set_trace()
     return {
         'count': len(serialized_tasks),
         'tasks': serialized_tasks,
