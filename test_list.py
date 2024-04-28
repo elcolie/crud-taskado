@@ -1,21 +1,15 @@
 """Test LIST, filter, and pagination."""
 
-import uuid
-from datetime import date, datetime
-from fastapi import status
 import sqlalchemy
+from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.testing import db
 from sqlmodel import Session
-from sqlalchemy import desc
-from pprint import pprint
 
 from app import DATABASE_URL
+from main import app
 from models import TaskContent, User
 from test_delete import manual_create_task
-from main import app
-from sqlalchemy import create_engine, MetaData, Table
 
 client = TestClient(app)
 
@@ -48,14 +42,14 @@ def list_no_deleted_tasks() -> None:
             print(">> User exists no create new one.")
             session.rollback()
 
-
     first_task_id = manual_create_task()
-    second_task_id = manual_create_task()   # Update 2 times
-    third_task_id = manual_create_task()    # Delete
-    fourth_task_id = manual_create_task()   # Update 2 time and delete
+    second_task_id = manual_create_task()  # Update 2 times
+    third_task_id = manual_create_task()  # Delete
+    fourth_task_id = manual_create_task()  # Update 2 time and delete
+    fifth_task_id = manual_create_task()  # CAUTION. created_by is None list_tasks will fail.
 
     # Expect 3 tasks in the ListView
-    # Expect 1 + 3 + 1 + 3 = 8 revisions(aka rows) in the TaskContent table.
+    # Expect 1 + 3 + 1 + 3 + 1= 9 revisions(aka rows) in the TaskContent table.
 
     second_task_response = client.put("/", json={
         "id": second_task_id,
@@ -99,12 +93,7 @@ def list_no_deleted_tasks() -> None:
     list_response = client.get("/")
 
     assert list_response.status_code == status.HTTP_200_OK
-
-    import ipdb; ipdb.set_trace()
-    from pprint import pprint
-
-    assert 2 == len(list_response.json()['count'])
-
+    assert 3 == list_response.json()['count']
     assert second_task_response.status_code == status.HTTP_200_OK
     assert second_task_final_response.status_code == status.HTTP_200_OK
     assert deleted_response.status_code == status.HTTP_200_OK

@@ -3,6 +3,7 @@ import typing as typ
 import uuid
 from datetime import date
 
+import ipdb
 import sqlalchemy
 from fastapi import FastAPI, status
 from fastapi import HTTPException
@@ -225,7 +226,8 @@ def get_queryset() -> sqlalchemy.orm.query.Query:
         stmt = (
             select(
                 # Group by id and get the latest created_at
-                TaskContent.id, func.max(TaskContent.created_at).label('max_created_at')
+                TaskContent.id,
+                func.max(TaskContent.created_at).label('max_created_at')
             )
             # Exclude the deleted tasks.
             .where(~TaskContent.id.in_(ids))
@@ -240,22 +242,26 @@ def get_queryset() -> sqlalchemy.orm.query.Query:
                 TaskContent.created_at == stmt.c.max_created_at,
             )
         ).subquery()
+        logger.info("==================================")
+        logger.info(f"len(queryset): {len(session.query(queryset).all())}")
+        for i in session.query(queryset).all():
+            logger.info(i)
 
         # Create subquery for username query
         # Tasks with username
         username_query = session.query(TaskContent, UserAlias.username).join(UserAlias).subquery()
+        logger.info(f"len(username_query): {len(session.query(username_query).all())}")
 
-        # Get only valid tasks.
-        final_query = session.query(
-            username_query
-        ).where(
-            (username_query.c.id.in_(
-                [i.id for i in session.query(queryset).all()]
-            )) & (
-                # Match identifier only.
-                username_query.c.identifier == queryset.c.identifier
-            )
+        # Left join. But SQLAlchemy use outerjoin.
+        final_query = session.query(queryset, username_query).outerjoin(
+            username_query, and_(queryset.c.identifier == username_query.c.identifier)
         )
+
+        len(session.execute(final_query).all())
+        logger.info("===========List the final queryset=======================")
+        for idx, i in enumerate(session.execute(final_query).all()):
+            logger.info(f"[{idx}]: {i}")
+
         return final_query
 
 
@@ -265,9 +271,10 @@ async def list_tasks() -> typ.Dict[str, typ.Any]:
     """Endpoint to list all tasks."""
     task_content_schema_with_username = TaskContentSchema()
     tasks_queryset = get_queryset()
-    for idx, i in enumerate(tasks_queryset):
-        print(f"[{idx}]: {i}")
     serialized_tasks = task_content_schema_with_username.dump(tasks_queryset, many=True)
+    print("===================================")
+    for idx, i in enumerate(tasks_queryset):
+        logger.info(f"[{idx}]: {i}")
     return {
         'count': len(serialized_tasks),
         'tasks': serialized_tasks,

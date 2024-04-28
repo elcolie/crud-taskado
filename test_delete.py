@@ -19,7 +19,7 @@ engine = create_engine(DATABASE_URL, echo=True)
 
 
 # Since `create_task()` is own by API. Change a bit to this one.
-def manual_create_task() -> int:
+def manual_create_task(has_user: bool = True) -> int:
     """Helper function to create a task with user."""
     user_id = 10
     with Session(engine) as session:
@@ -50,7 +50,7 @@ def manual_create_task() -> int:
             description="This is a test task",
             status="pending",
             due_date=date(2099, 12, 31),
-            created_by=user_id,
+            created_by=user_id if has_user else None,
             created_at=datetime.now(),  # On my OSX it is Bangkok time not UTC.
             updated_at=datetime.now(),
         )
