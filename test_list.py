@@ -99,6 +99,10 @@ def list_no_deleted_tasks() -> None:
     list_response = client.get("/")
 
     assert list_response.status_code == status.HTTP_200_OK
+
+    import ipdb; ipdb.set_trace()
+    from pprint import pprint
+
     assert 2 == len(list_response.json()['count'])
 
     assert second_task_response.status_code == status.HTTP_200_OK

@@ -46,10 +46,11 @@ class TaskContentSchema(BaseSchema):
     due_date = fields.Date()
     status = fields.String(validate=validate.OneOf([
         StatusEnum.pending, StatusEnum.in_progress, StatusEnum.completed]))
-    # created_by = fields.Integer()
+    created_by = fields.Integer()
+    username = fields.String()
 
     # Replace created_by with nested serialization
-    created_by = fields.Nested(UserSchema, only=("id", "username"))
+    # created_by = fields.Nested(UserSchema, only=("id", "username"))
 
     # TODO:
     # https://stackoverflow.com/questions/78389527/nested-payload-show-blank-dictionary-sqlalchemy-marshmallow
