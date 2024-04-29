@@ -17,7 +17,7 @@ from sqlmodel import Session
 
 # Database connection url
 from app import DATABASE_URL
-from models import StatusEnum, TaskContent, User
+from models import StatusEnum, TaskContent, User, CurrentTaskContent
 from serializers import TaskContentSchema
 from validate_input import GenericTaskInput, UpdateTask, CheckTaskId
 from sqlalchemy.orm import aliased
@@ -99,13 +99,26 @@ async def create_task(task_input: GenericTaskInput) -> typ.Union[
             # id is for human reference, identifier is for redo mechanism
             _max_id = session.query(func.max(TaskContent.id)).scalar()
             max_id = 0 if _max_id is None else _max_id
-            id = max_id + 1
+            _id = max_id + 1
+
+            # Add the history record.
             task_content = TaskContent(**{
-                'id': id,
+                'id': _id,
                 'identifier': _identifier,
                 **instance.dict(),
             })
+
+            # Save the current task table.
+            current_task = CurrentTaskContent(**{
+                'id': _id,
+                'identifier': _identifier,
+                'created_by': instance.created_by,
+                'updated_by': instance.created_by,
+                'created_at': task_content.created_at,
+                'updated_at': task_content.created_at,
+            })
             session.add(task_content)
+            session.add(current_task)
             session.commit()
     return TaskSuccessMessage(
         message="Instance created successfully!",
@@ -252,8 +265,22 @@ def get_queryset() -> sqlalchemy.orm.query.Query:
         username_query = session.query(TaskContent, UserAlias.username).join(UserAlias).subquery()
         logger.info(f"len(username_query): {len(session.query(username_query).all())}")
 
+        # Find the first created_by in the queryset
+        min_created_at_stmt = (
+            select(
+                # Group by id and get the latest created_at
+                TaskContent.id,
+                func.min(TaskContent.created_at).label('min_created_at')
+            )
+            # Exclude the deleted tasks.
+            .where(~TaskContent.id.in_(ids))
+            .group_by(TaskContent.id)
+        ).subquery()
+
+        import ipdb; ipdb.set_trace()
+
         # Left join. But SQLAlchemy use outerjoin.
-        final_query = session.query(queryset, username_query).outerjoin(
+        final_query = session.query(queryset, username_query, min_created_at_stmt).outerjoin(
             username_query, and_(queryset.c.identifier == username_query.c.identifier)
         )
 

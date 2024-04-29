@@ -1,4 +1,5 @@
 """Test LIST, filter, and pagination."""
+import typing as typ
 
 import sqlalchemy
 from fastapi import status
@@ -8,8 +9,9 @@ from sqlmodel import Session
 
 from app import DATABASE_URL
 from main import app
-from models import TaskContent, User
+from models import User
 from test_delete import manual_create_task
+from test_gadgets import test_this_func
 
 client = TestClient(app)
 
@@ -17,16 +19,10 @@ client = TestClient(app)
 engine = create_engine(DATABASE_URL, echo=True)
 
 
-def remove_all_tasks() -> None:
-    """Remove all tasks in table first."""
-
-    with Session(engine) as session:
-        session.query(TaskContent).delete()
-        session.commit()
-
-
-def list_no_deleted_tasks() -> None:
-    """List all tasks. Expect no deleted task."""
+def before_test() -> typ.Tuple[
+    int, int, int, int, int, int
+]:
+    """Prepare the data for testing."""
     el_id = 2
     with Session(engine) as session:
         # Add a user
@@ -51,6 +47,12 @@ def list_no_deleted_tasks() -> None:
     # Expect 3 tasks in the ListView
     # Expect 1 + 3 + 1 + 3 + 1= 9 revisions(aka rows) in the TaskContent table.
 
+    return el_id, first_task_id, second_task_id, third_task_id, fourth_task_id, fifth_task_id
+
+
+def list_no_deleted_tasks() -> None:
+    """List all tasks. Expect no deleted task."""
+    el_id, first_task_id, second_task_id, third_task_id, fourth_task_id, fifth_task_id = before_test()
     second_task_response = client.put("/", json={
         "id": second_task_id,
         "title": "Intermediate title",
@@ -62,7 +64,7 @@ def list_no_deleted_tasks() -> None:
     second_task_final_response = client.put("/", json={
         "id": second_task_id,
         "title": "Final title",
-        "description": "New desc",
+        "description": "Final desc",
         "status": "pending",
         "due_date": "2022-12-31",
         "created_by": el_id
@@ -103,5 +105,4 @@ def list_no_deleted_tasks() -> None:
 
 
 if __name__ == "__main__":
-    remove_all_tasks()
-    list_no_deleted_tasks()
+    test_this_func(list_no_deleted_tasks)

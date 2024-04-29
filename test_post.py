@@ -4,9 +4,23 @@ Test the POST request to create a task.
 I made this script because I am lazy to manually test the POST request to create a task by POSTMAN.
 NOT INTENTIONALLY TO RUN IN THE CI/CD PIPELINE.
 """
+from datetime import date
+
+from sqlmodel import select
+
 from fastapi.testclient import TestClient
 from fastapi import status
+from sqlalchemy import create_engine
+from sqlmodel import Session
+
+from app import DATABASE_URL
 from main import app
+from models import TaskContent, CurrentTaskContent, StatusEnum
+from test_gadgets import test_this_func
+
+# Create the database engine
+engine = create_engine(DATABASE_URL, echo=True)
+
 
 client = TestClient(app)
 
@@ -20,6 +34,25 @@ def test_post_create_task() -> None:
         "due_date": "2022-12-31",
         "created_by": 1
     })
+    with Session(engine) as session:
+        task = session.exec(
+            select(TaskContent)
+            .where(TaskContent.title == "Test Task with created_by")
+        ).one()
+        assert task.title == "Test Task with created_by"
+        assert task.description == "This is a test task"
+        assert task.status == StatusEnum.pending
+        assert task.due_date == date(2022, 12, 31)
+        assert task.created_by == 1
+
+        current_task = session.exec(select(CurrentTaskContent).where(CurrentTaskContent.id == task.id)).one()
+        assert current_task.identifier == task.identifier
+        assert current_task.id == task.id
+        assert current_task.created_by == 1
+        assert current_task.updated_by == 1
+        assert current_task.created_at == task.created_at
+        assert current_task.updated_at == task.created_at
+
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json() == {"message": "Instance created successfully!"}
 
@@ -88,9 +121,9 @@ def test_invalid_status_and_due_date_and_wrong_created_by() -> None:
 
 
 if __name__ == "__main__":
-    test_post_create_task()
-    test_post_create_task_no_created_by()
-    test_post_invalid_created_by()
-    test_invalid_date_format()
-    test_invalid_status()
-    test_invalid_status_and_due_date_and_wrong_created_by()
+    test_this_func(test_post_create_task)
+    test_this_func(test_post_create_task_no_created_by)
+    test_this_func(test_post_invalid_created_by)
+    test_this_func(test_invalid_date_format)
+    test_this_func(test_invalid_status)
+    test_this_func(test_invalid_status_and_due_date_and_wrong_created_by)

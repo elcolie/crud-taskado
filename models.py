@@ -11,7 +11,7 @@ class StatusEnum(enum.Enum):
 
 
 class TaskContent(SQLModel, table=True):
-    """Model class for TaskContent."""
+    """Model class for TaskContent history."""
     identifier: str = Field(primary_key=True)   # For redo mechanism
     id: int = Field(primary_key=False)  # For human use
     title: str = Field(nullable=True)
@@ -21,6 +21,15 @@ class TaskContent(SQLModel, table=True):
     is_deleted: bool = Field(default=False)  # For redo mechanism
     created_by: int = Field(nullable=True, default=None, foreign_key="user.id")
     created_at: datetime = Field(default=date.today())  # For redo mechanism
+
+
+class CurrentTaskContent(SQLModel, table=True):
+    """Model class for current."""
+    identifier: str = Field(primary_key=True)   # For redo mechanism
+    id: int = Field(primary_key=False)  # For human use
+    created_by: int = Field(nullable=True, default=None, foreign_key="user.id")
+    updated_by: int = Field(nullable=True, default=None, foreign_key="user.id")
+    created_at: datetime = Field(default=date.today())
     updated_at: datetime = Field(default=date.today())
 
 
