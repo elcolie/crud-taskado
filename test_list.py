@@ -10,8 +10,7 @@ from sqlmodel import Session
 from app import DATABASE_URL
 from main import app
 from models import User
-from test_delete import manual_create_task
-from test_gadgets import test_this_func
+from test_gadgets import test_this_func, manual_create_task
 
 client = TestClient(app)
 

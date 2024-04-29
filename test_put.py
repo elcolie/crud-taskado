@@ -5,12 +5,11 @@ Instead of clicking the POSTMAN I run this script instead.
 Be careful, this script is not intended to run in the CI/CD pipeline.
 Because it mutates the database.
 """
+from fastapi import status
 from fastapi.testclient import TestClient
 
 from main import app
-from fastapi import status
-from test_delete import manual_create_task
-from test_gadgets import test_this_func, remove_all_tasks_and_users, prepare_users_for_test
+from test_gadgets import test_this_func, manual_create_task
 
 client = TestClient(app)
 
@@ -96,12 +95,8 @@ def test_wrong_id_by_string() -> None:
 
 
 if __name__ == "__main__":
-    remove_all_tasks_and_users()
-    prepare_users_for_test()
-    test_update_task()
-
-
-    # test_wrong_due_date()
-    # test_wrong_status_and_due_date()
-    # test_wrong_id()
-    # test_wrong_id_by_string()
+    test_this_func(test_update_task)
+    test_this_func(test_wrong_due_date)
+    test_this_func(test_wrong_status_and_due_date)
+    test_this_func(test_wrong_id)
+    test_this_func(test_wrong_id_by_string)

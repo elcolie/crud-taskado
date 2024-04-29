@@ -4,7 +4,7 @@ import sys
 from fastapi.testclient import TestClient
 from fastapi import status
 from main import app
-from test_delete import manual_create_task
+from test_gadgets import manual_create_task
 
 client = TestClient(app)
 

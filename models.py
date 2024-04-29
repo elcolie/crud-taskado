@@ -22,7 +22,7 @@ class TaskContent(SQLModel, table=True):
     status: StatusEnum = Field(default=StatusEnum.pending)
     is_deleted: bool = Field(default=False)  # For redo mechanism
     created_by: int = Field(nullable=True, default=None, foreign_key="user.id")
-    created_at: datetime = Field(default=date.today())  # For redo mechanism
+    created_at: datetime = Field(default=datetime.now())  # For redo mechanism
 
 
 class CurrentTaskContent(SQLModel, table=True):
@@ -34,8 +34,8 @@ class CurrentTaskContent(SQLModel, table=True):
     id: int = Field(primary_key=False)  # For human use
     created_by: int = Field(nullable=True, default=None, foreign_key="user.id")
     updated_by: int = Field(nullable=True, default=None, foreign_key="user.id")
-    created_at: datetime = Field(default=date.today())
-    updated_at: datetime = Field(default=date.today())
+    created_at: datetime = Field(default=datetime.now())
+    updated_at: datetime = Field(default=datetime.now())
 
 
 class User(SQLModel, table=True):

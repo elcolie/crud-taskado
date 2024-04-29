@@ -2,11 +2,14 @@
 import typing as typ
 
 from sqlmodel import Session
-
+from fastapi import status
 from app import DATABASE_URL
-from models import User, TaskContent, CurrentTaskContent
+from models import User, TaskContent, CurrentTaskContent, StatusEnum
+from main import app
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, desc
 
-from sqlalchemy import create_engine
+client = TestClient(app)
 
 # Create the database engine
 engine = create_engine(DATABASE_URL, echo=True)
@@ -52,3 +55,30 @@ def test_this_func(test_case: typ.Callable) -> None:
         remove_all_tasks_and_users()
 
     return wrapper()
+
+
+def manual_create_task(has_user: bool = True, user_id: int = 10) -> int:
+    """Helper function to create a task with user."""
+    if has_user:
+        response_a = client.post("/create-task/", json={
+            "title": "Test Task with created_by",
+            "description": "This is a test task",
+            "status": "pending",
+            "due_date": "2022-12-31",
+            "created_by": user_id
+        })
+        # Raise error if unable to create user.
+        assert response_a.status_code == status.HTTP_201_CREATED
+    else:
+        response_b = client.post("/create-task/", json={
+            "title": "Test Task NO created_by",
+            "description": "This is a test task",
+            "status": "pending",
+            "due_date": "2022-12-31",
+        })
+        # Raise error if unable to create user.
+        assert response_b.status_code == status.HTTP_201_CREATED
+
+    with Session(engine) as session:
+        task = session.query(CurrentTaskContent).order_by(desc(CurrentTaskContent.id)).first()
+    return task.id

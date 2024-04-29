@@ -3,7 +3,6 @@ import typing as typ
 import uuid
 from datetime import date
 
-import ipdb
 import sqlalchemy
 from fastapi import FastAPI, status
 from fastapi import HTTPException
@@ -165,7 +164,6 @@ async def update_task(payload: UpdateTask) -> typ.Union[
                 'created_by': task_content_instance.created_by,
             })
 
-            import ipdb; ipdb.set_trace()
             # Update the timestamp on this task instance.
             current_task_instance = session.query(CurrentTaskContent).filter(CurrentTaskContent.id == payload.id).first()
             current_task_instance.updated_by = task_content_instance.created_by
