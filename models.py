@@ -1,5 +1,7 @@
 from datetime import date, datetime
 import enum
+
+from sqlalchemy import ForeignKeyConstraint, Constraint, PrimaryKeyConstraint, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
@@ -25,6 +27,9 @@ class TaskContent(SQLModel, table=True):
 
 class CurrentTaskContent(SQLModel, table=True):
     """Model class for current."""
+    # https://github.com/tiangolo/sqlmodel/issues/114
+    __table_args__ = (UniqueConstraint("identifier", "id"), )
+
     identifier: str = Field(primary_key=True)   # For redo mechanism
     id: int = Field(primary_key=False)  # For human use
     created_by: int = Field(nullable=True, default=None, foreign_key="user.id")

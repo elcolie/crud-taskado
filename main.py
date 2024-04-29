@@ -164,7 +164,15 @@ async def update_task(payload: UpdateTask) -> typ.Union[
                 'status': task_content_instance.status,
                 'created_by': task_content_instance.created_by,
             })
+
+            import ipdb; ipdb.set_trace()
+            # Update the timestamp on this task instance.
+            current_task_instance = session.query(CurrentTaskContent).filter(CurrentTaskContent.id == payload.id).first()
+            current_task_instance.updated_by = task_content_instance.created_by
+            current_task_instance.updated_at = new_content.created_at
+
             session.add(new_content)
+            session.add(current_task_instance)
             session.commit()
             return TaskSuccessMessage(
                 message="Instance updated successfully!",
