@@ -3,10 +3,12 @@
 from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlmodel import Session
 
 from app import DATABASE_URL
 from main import app
-from test_gadgets import manual_create_task
+from models import TaskContent, CurrentTaskContent
+from test_gadgets import manual_create_task, test_this_func
 
 client = TestClient(app)
 engine = create_engine(DATABASE_URL, echo=True)
@@ -19,6 +21,17 @@ def test_delete_task() -> None:
     """Test happy path for deleting a task."""
     task_id = manual_create_task()
     response = client.delete(f"/{task_id}")
+
+    with Session(engine) as session:
+        # Check history in database
+        history = session.query(TaskContent).filter(TaskContent.id == task_id).first()
+        assert history.is_deleted is True
+
+        # Check current_task in database
+        current = session.query(CurrentTaskContent).filter(CurrentTaskContent.id == task_id).first()
+        assert current is None
+        assert 0 == session.query(CurrentTaskContent).count()
+
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"message": "Instance deleted successfully!"}
 
@@ -31,5 +44,5 @@ def test_delete_invalid_task() -> None:
 
 
 if __name__ == "__main__":
-    test_delete_task()
-    test_delete_invalid_task()
+    test_this_func(test_delete_task)
+    test_this_func(test_delete_invalid_task)
