@@ -12,6 +12,17 @@ from app import DATABASE_URL
 from models import StatusEnum, User, TaskContent
 
 
+def check_due_date_format(value: str) -> str:
+    """Check due date format and return string."""
+    if value is not None:
+        try:
+            # Parse the due_date string to check if it's in the correct format.
+            datetime.strptime(value, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("Invalid date format. Must be in 'YYYY-MM-DD' format.")
+    return value
+
+
 class GenericTaskInput(BaseModel):
     """Pydantic model to validate input data for creating a task."""
     title: typ.Optional[str]
@@ -25,13 +36,7 @@ class GenericTaskInput(BaseModel):
 
     @field_validator("due_date")
     def check_due_date_format(cls, value: str) -> str:
-        if value is not None:
-            try:
-                # Parse the due_date string to check if it's in the correct format.
-                datetime.strptime(value, "%Y-%m-%d")
-            except ValueError:
-                raise ValueError("Invalid date format. Must be in 'YYYY-MM-DD' format.")
-        return value
+        return check_due_date_format(value)
 
     @field_validator("created_by")
     def user_exists(cls, value: int) -> None:

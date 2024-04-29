@@ -41,7 +41,7 @@ def before_test() -> typ.Tuple[
     second_task_id = manual_create_task()  # Update 2 times
     third_task_id = manual_create_task()  # Delete
     fourth_task_id = manual_create_task()  # Update 2 time and delete
-    fifth_task_id = manual_create_task()  # CAUTION. created_by is None list_tasks will fail.
+    fifth_task_id = manual_create_task(has_user=False)
 
     # Expect 3 tasks in the ListView
     # Expect 1 + 3 + 1 + 3 + 1= 9 revisions(aka rows) in the TaskContent table.
@@ -103,5 +103,41 @@ def list_no_deleted_tasks() -> None:
     assert fourth_deleted_response.status_code == status.HTTP_200_OK
 
 
+def filter_due_date_and_found() -> None:
+    """Filter by exact due_date."""
+    el_id, first_task_id, second_task_id, third_task_id, fourth_task_id, fifth_task_id = before_test()
+    response = client.get("/?due_date=2099-99-31")
+
+
+def filter_due_date_and_not_found() -> None:
+    """Filter by exact due_date."""
+    # el_id, first_task_id, second_task_id, third_task_id, fourth_task_id, fifth_task_id = before_test()
+    response = client.get("/?due_date=2099-12-30")
+
+    # assert response.status_code == status.HTTP_200_OK
+    # assert 0 == response.json()['count']
+
+
+def filter_due_date_non_numeric_string() -> None:
+    """Filter with non-numeric string."""
+    response = client.get("/?due_date=some_string")
+
+
+def filter_due_date_and_status() -> None:
+    """Filter by status."""
+    pass
+
+
+def filter_due_date_and_status_and_username_all_wrong() -> None:
+    """Filter by created_by."""
+    response = client.get("/?due_date=2099-99-31&task_status=invalid_string&created_by__username=999")
+    assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
+    assert response.json() == {'message': [
+        {'loc': ['due_date'], 'msg': "Invalid date format. Must be in 'YYYY-MM-DD' format.", 'type': 'ValueError'},
+        {'loc': ['status'], 'msg': 'StatusEnum is invalid status value.', 'type': 'ValueError'},
+        {'loc': ['created_by__username'], 'msg': 'User does not exist.', 'type': 'ValueError'}]}
+
+
 if __name__ == "__main__":
-    test_this_func(list_no_deleted_tasks)
+    # test_this_func(list_no_deleted_tasks)
+    test_this_func(filter_due_date_and_status_and_username_all_wrong)

@@ -2,11 +2,13 @@ import logging
 import typing as typ
 import uuid
 from datetime import date
-
+from typing_extensions import Annotated
+from fastapi import Response
+import ipdb
 import sqlalchemy
 from fastapi import FastAPI, status
 from fastapi import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, AfterValidator
 from pydantic import ValidationError
 from sqlalchemy import create_engine, desc
 from sqlalchemy import distinct
@@ -18,7 +20,7 @@ from sqlmodel import Session
 from app import DATABASE_URL
 from models import StatusEnum, TaskContent, User, CurrentTaskContent
 from serializers import TaskContentSchema
-from validate_input import GenericTaskInput, UpdateTask, CheckTaskId
+from validate_input import GenericTaskInput, UpdateTask, CheckTaskId, check_due_date_format
 from sqlalchemy.orm import aliased
 
 # Create an alias for the User table
@@ -247,82 +249,118 @@ async def get_task(task_id: int) -> typ.Union[
 def get_queryset() -> sqlalchemy.orm.query.Query:
     """Get the queryset of tasks."""
     with (Session(engine) as session):
-        # List out add id that is deleted.
-        deleted_id_list = session.query(distinct(TaskContent.id)).filter(TaskContent.is_deleted == True).all()
+        # List out available id.
+        available_id_list = session.query(CurrentTaskContent).all()
+        available_identifier_list = [i.identifier for i in available_id_list]
 
-        # List out all undeleted tasks.
-        # Extract the ids from the id_list
-        ids = [id_[0] for id_ in deleted_id_list]
-
-        # Get only the latest revision of each task
-        stmt = (
-            select(
-                # Group by id and get the latest created_at
-                TaskContent.id,
-                func.max(TaskContent.created_at).label('max_created_at')
-            )
-            # Exclude the deleted tasks.
-            .where(~TaskContent.id.in_(ids))
-            .group_by(TaskContent.id)
-        )
-
-        # Join the result to get the full task content
-        queryset = session.query(TaskContent).join(
-            stmt,
-            and_(
-                TaskContent.id == stmt.c.id,
-                TaskContent.created_at == stmt.c.max_created_at,
-            )
-        ).subquery()
-        logger.info("==================================")
-        logger.info(f"len(queryset): {len(session.query(queryset).all())}")
-        for i in session.query(queryset).all():
-            logger.info(i)
-
-        # Create subquery for username query
-        # Tasks with username
-        username_query = session.query(TaskContent, UserAlias.username).join(UserAlias).subquery()
-        logger.info(f"len(username_query): {len(session.query(username_query).all())}")
-
-        # Find the first created_by in the queryset
-        min_created_at_stmt = (
-            select(
-                # Group by id and get the latest created_at
-                TaskContent.id,
-                func.min(TaskContent.created_at).label('min_created_at')
-            )
-            # Exclude the deleted tasks.
-            .where(~TaskContent.id.in_(ids))
-            .group_by(TaskContent.id)
+        # Get task and id
+        queryset_tasks = session.query(TaskContent).filter(
+            TaskContent.identifier.in_(available_identifier_list)
         ).subquery()
 
-        import ipdb;
-        ipdb.set_trace()
+        # Get username and id
+        username_query = session.query(User.username, User.id).subquery()
 
-        # Left join. But SQLAlchemy use outerjoin.
-        final_query = session.query(queryset, username_query, min_created_at_stmt).outerjoin(
-            username_query, and_(queryset.c.identifier == username_query.c.identifier)
+        # Join the queryset and username
+        final_query = session.query(queryset_tasks, username_query).outerjoin(
+            username_query, and_(queryset_tasks.c.created_by == username_query.c.id)
         )
-
-        len(session.execute(final_query).all())
-        logger.info("===========List the final queryset=======================")
-        for idx, i in enumerate(session.execute(final_query).all()):
-            logger.info(f"[{idx}]: {i}")
-
         return final_query
 
 
-# TODO: query, filter and pagination.
+def validate_due_date(str_due_date: str) -> typ.Optional[date]:
+    """Validate the due date."""
+    correct_format = check_due_date_format(str_due_date)
+    year, month, day = correct_format.split("-")
+    return date(int(year), int(month), int(day))
+
+
+def validate_status(str_status: str) -> StatusEnum:
+    """Validate the status."""
+    for _status in StatusEnum:
+        if _status.value == str_status:
+            return _status
+    raise ValueError("StatusEnum is invalid status value.")
+
+
+def validate_username(str_username: str) -> User:
+    """Validate the username."""
+    with Session(engine) as session:
+        user = session.query(User).filter(User.username == str_username).first()
+        if user is None:
+            raise ValueError("User does not exist.")
+        return user
+
+
+# query, filter and pagination.
 @app.get("/")
-async def list_tasks() -> typ.Dict[str, typ.Any]:
+async def list_tasks(
+    response: Response,
+    due_date: str = None, task_status: str = None, created_by__username: str = None,
+) -> typ.Dict[str, typ.Any]:
     """Endpoint to list all tasks."""
-    task_content_schema_with_username = TaskContentSchema()
-    tasks_queryset = get_queryset()
+    errors: typ.List[ErrorDetail] = []
+
+    try:
+        due_date_instance = validate_due_date(due_date) if due_date else None
+    except ValueError as e:
+        logger.info(f"Due date validation failed. {e}")
+        errors.append(ErrorDetail(loc=["due_date"], msg=str(e), type="ValueError"))
+    try:
+        status_instance = validate_status(task_status) if task_status else None
+    except ValueError as e:
+        logger.info(f"Status validation failed. {e}")
+        errors.append(ErrorDetail(loc=["status"], msg=str(e), type="ValueError"))
+    try:
+        username_instance = validate_username(created_by__username) if created_by__username else None
+    except ValueError as e:
+        logger.info(f"Username validation failed. {e}")
+        errors.append(ErrorDetail(loc=["created_by__username"], msg=str(e), type="ValueError"))
+
+    if len(errors) > 0:
+        response.status_code = status.HTTP_406_NOT_ACCEPTABLE
+        return {
+            'message': errors
+        }
+        # raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=errors)
+
+    aa = {
+        'due_date': due_date,
+        'status': status,
+        'username': username_instance.username if username_instance else None
+    }
+    print(aa)
+
+    return aa
+
+    # task_content_schema_with_username = TaskContentSchema()
+    # tasks_queryset = get_queryset()
+    #
+    # # Filter the queryset
+    # import ipdb; ipdb.set_trace()
+    # print("======================")
+    # for idx, i in enumerate(tasks_queryset):
+    #     print(idx, i)
+    # print("======================")
+    # if due_date:
+    #     tasks_queryset = tasks_queryset.filter(TaskContent.due_date == due_date)
+
     serialized_tasks = task_content_schema_with_username.dump(tasks_queryset, many=True)
-    print("===================================")
-    for idx, i in enumerate(tasks_queryset):
-        logger.info(f"[{idx}]: {i}")
     return {
         'count': len(serialized_tasks),
         'tasks': serialized_tasks,
     }
+
+
+# TODO. Undo the last action.
+@app.post("/undo/{task_id}")
+async def undo_task(task_id: int) -> typ.Union[TaskSuccessMessage]:
+    """Endpoint to undo a task."""
+    try:
+        task_instance = CheckTaskId(id=task_id)
+    except ValidationError as e:
+        logger.error(f"Validation failed UNDO method: {e}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unable to undo. Task not found")
+    else:
+        ipdb;
+        ipdb.set_trace()
