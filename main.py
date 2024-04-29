@@ -8,7 +8,7 @@ from fastapi import FastAPI, status
 from fastapi import HTTPException
 from pydantic import BaseModel
 from pydantic import ValidationError
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, desc
 from sqlalchemy import distinct
 from sqlalchemy import func, and_
 from sqlalchemy import select
@@ -165,7 +165,8 @@ async def update_task(payload: UpdateTask) -> typ.Union[
             })
 
             # Update the timestamp on this task instance.
-            current_task_instance = session.query(CurrentTaskContent).filter(CurrentTaskContent.id == payload.id).first()
+            current_task_instance = session.query(CurrentTaskContent).filter(
+                CurrentTaskContent.id == payload.id).first()
             current_task_instance.updated_by = task_content_instance.created_by
             current_task_instance.updated_at = new_content.created_at
 
@@ -188,7 +189,8 @@ async def delete_task(task_id: int) -> typ.Union[TaskSuccessMessage]:
     else:
         with Session(engine) as session:
             # Delete the instance from the current_task table
-            current_task_instance = session.query(CurrentTaskContent).filter(CurrentTaskContent.id == task_instance.id).first()
+            current_task_instance = session.query(CurrentTaskContent).filter(
+                CurrentTaskContent.id == task_instance.id).first()
 
             # Mark the history as `is_deleted`
             task = session.query(TaskContent).filter(TaskContent.id == task_instance.id).first()
@@ -212,11 +214,17 @@ async def get_task(task_id: int) -> typ.Union[
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     else:
         with Session(engine) as session:
+            try:
+                current_task = session.query(CurrentTaskContent).filter(CurrentTaskContent.id == task_id).one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task not found: {task_id}")
+
             task_content_schema = TaskContentSchema()
             task = session.query(TaskContent).filter(
-                TaskContent.id == task_id,
+                TaskContent.id == current_task.id,
+                TaskContent.identifier == current_task.identifier,
                 TaskContent.is_deleted == False,
-            ).first()
+            ).one()
             # Task is deleted. Then id is here, but is_deleted is True.
             if task is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task is deleted")
@@ -288,7 +296,8 @@ def get_queryset() -> sqlalchemy.orm.query.Query:
             .group_by(TaskContent.id)
         ).subquery()
 
-        import ipdb; ipdb.set_trace()
+        import ipdb;
+        ipdb.set_trace()
 
         # Left join. But SQLAlchemy use outerjoin.
         final_query = session.query(queryset, username_query, min_created_at_stmt).outerjoin(

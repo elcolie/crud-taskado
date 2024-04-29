@@ -1,5 +1,9 @@
 # Task Management
 
+# Why design this way?
+1. I can make multiple revision of the task by using `identifier`
+2. I have to make trade off table `CurrentTaskContent` to show `updated_by` the latest user with `updated_at` timestamp.
+
 # Step to run the project
 1. `docker compose up`. To up and running the `postgres`.
 2. `alembic upgrade head`. To apply migration files.
