@@ -1,7 +1,7 @@
-from datetime import date, datetime
 import enum
+from datetime import date, datetime
 
-from sqlalchemy import ForeignKeyConstraint, Constraint, PrimaryKeyConstraint, UniqueConstraint
+from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 

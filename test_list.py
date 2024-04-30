@@ -105,17 +105,18 @@ def list_no_deleted_tasks() -> None:
 
 def filter_due_date_and_found() -> None:
     """Filter by exact due_date."""
-    el_id, first_task_id, second_task_id, third_task_id, fourth_task_id, fifth_task_id = before_test()
-    response = client.get("/?due_date=2099-99-31")
+    before_test()
+    response = client.get("/?due_date=2022-12-31")
+    assert response.status_code == status.HTTP_200_OK
+    assert 5 == response.json()['count']
 
 
 def filter_due_date_and_not_found() -> None:
     """Filter by exact due_date."""
-    # el_id, first_task_id, second_task_id, third_task_id, fourth_task_id, fifth_task_id = before_test()
-    response = client.get("/?due_date=2099-12-30")
-
-    # assert response.status_code == status.HTTP_200_OK
-    # assert 0 == response.json()['count']
+    before_test()
+    response = client.get("/?due_date=2022-12-3")
+    assert response.status_code == status.HTTP_200_OK
+    assert 0 == response.json()['count']
 
 
 def filter_due_date_non_numeric_string() -> None:
@@ -140,4 +141,7 @@ def filter_due_date_and_status_and_username_all_wrong() -> None:
 
 if __name__ == "__main__":
     # test_this_func(list_no_deleted_tasks)
-    test_this_func(filter_due_date_and_status_and_username_all_wrong)
+    # test_this_func(filter_due_date_and_status_and_username_all_wrong)
+    # test_this_func(filter_due_date_and_found)
+    # test_this_func(filter_due_date_and_not_found)
+    pass

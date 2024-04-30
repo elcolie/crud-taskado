@@ -2,18 +2,17 @@ import logging
 import typing as typ
 import uuid
 from datetime import date
-from typing_extensions import Annotated
-from fastapi import Response
+
 import ipdb
 import sqlalchemy
 from fastapi import FastAPI, status
 from fastapi import HTTPException
-from pydantic import BaseModel, AfterValidator
+from fastapi import Response
+from pydantic import BaseModel
 from pydantic import ValidationError
-from sqlalchemy import create_engine, desc
-from sqlalchemy import distinct
+from sqlalchemy import create_engine, or_
 from sqlalchemy import func, and_
-from sqlalchemy import select
+from sqlalchemy.orm import aliased
 from sqlmodel import Session
 
 # Database connection url
@@ -21,7 +20,6 @@ from app import DATABASE_URL
 from models import StatusEnum, TaskContent, User, CurrentTaskContent
 from serializers import TaskContentSchema
 from validate_input import GenericTaskInput, UpdateTask, CheckTaskId, check_due_date_format
-from sqlalchemy.orm import aliased
 
 # Create an alias for the User table
 UserAlias = aliased(User)
@@ -246,7 +244,7 @@ async def get_task(task_id: int) -> typ.Union[
             return out_payload
 
 
-def get_queryset() -> sqlalchemy.orm.query.Query:
+def get_queryset(_due_date: typ.Optional[date]) -> sqlalchemy.orm.query.Query:
     """Get the queryset of tasks."""
     with (Session(engine) as session):
         # List out available id.
@@ -255,7 +253,8 @@ def get_queryset() -> sqlalchemy.orm.query.Query:
 
         # Get task and id
         queryset_tasks = session.query(TaskContent).filter(
-            TaskContent.identifier.in_(available_identifier_list)
+            TaskContent.identifier.in_(available_identifier_list),
+            or_(TaskContent.due_date == _due_date, _due_date is None)
         ).subquery()
 
         # Get username and id
@@ -297,10 +296,11 @@ def validate_username(str_username: str) -> User:
 async def list_tasks(
     response: Response,
     due_date: str = None, task_status: str = None, created_by__username: str = None,
-) -> typ.Dict[str, typ.Any]:
+) -> typ.Dict[str, typ.Union[typ.Any, typ.List[ErrorDetail]]]:
     """Endpoint to list all tasks."""
     errors: typ.List[ErrorDetail] = []
 
+    due_date_instance: typ.Optional[date] = None
     try:
         due_date_instance = validate_due_date(due_date) if due_date else None
     except ValueError as e:
@@ -322,28 +322,11 @@ async def list_tasks(
         return {
             'message': errors
         }
-        # raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=errors)
 
-    aa = {
-        'due_date': due_date,
-        'status': status,
-        'username': username_instance.username if username_instance else None
-    }
-    print(aa)
-
-    return aa
-
-    # task_content_schema_with_username = TaskContentSchema()
-    # tasks_queryset = get_queryset()
-    #
-    # # Filter the queryset
-    # import ipdb; ipdb.set_trace()
-    # print("======================")
-    # for idx, i in enumerate(tasks_queryset):
-    #     print(idx, i)
-    # print("======================")
-    # if due_date:
-    #     tasks_queryset = tasks_queryset.filter(TaskContent.due_date == due_date)
+    task_content_schema_with_username = TaskContentSchema()
+    tasks_queryset = get_queryset(
+        _due_date=due_date_instance
+    )
 
     serialized_tasks = task_content_schema_with_username.dump(tasks_queryset, many=True)
     return {
