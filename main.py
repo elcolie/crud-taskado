@@ -244,18 +244,31 @@ async def get_task(task_id: int) -> typ.Union[
             return out_payload
 
 
-def get_queryset(_due_date: typ.Optional[date]) -> sqlalchemy.orm.query.Query:
+def get_queryset(
+    _due_date: typ.Optional[date],
+    _status: typ.Optional[StatusEnum],
+    _user: typ.Optional[User],
+) -> sqlalchemy.orm.query.Query:
     """Get the queryset of tasks."""
     with (Session(engine) as session):
         # List out available id.
         available_id_list = session.query(CurrentTaskContent).all()
         available_identifier_list = [i.identifier for i in available_id_list]
 
-        # Get task and id
-        queryset_tasks = session.query(TaskContent).filter(
-            TaskContent.identifier.in_(available_identifier_list),
-            or_(TaskContent.due_date == _due_date, _due_date is None)
-        ).subquery()
+        if _user is not None:
+            # Get task and id
+            queryset_tasks = session.query(TaskContent).filter(
+                TaskContent.identifier.in_(available_identifier_list),
+                or_(TaskContent.due_date == _due_date, _due_date is None),
+                or_(TaskContent.status == _status, _status is None),
+                or_(TaskContent.created_by == _user.id, _user is None),
+            ).subquery()
+        else:
+            queryset_tasks = session.query(TaskContent).filter(
+                TaskContent.identifier.in_(available_identifier_list),
+                or_(TaskContent.due_date == _due_date, _due_date is None),
+                or_(TaskContent.status == _status, _status is None),
+            ).subquery()
 
         # Get username and id
         username_query = session.query(User.username, User.id).subquery()
@@ -301,6 +314,8 @@ async def list_tasks(
     errors: typ.List[ErrorDetail] = []
 
     due_date_instance: typ.Optional[date] = None
+    status_instance: typ.Optional[StatusEnum] = None
+    user_instance: typ.Optional[User] = None
     try:
         due_date_instance = validate_due_date(due_date) if due_date else None
     except ValueError as e:
@@ -312,7 +327,7 @@ async def list_tasks(
         logger.info(f"Status validation failed. {e}")
         errors.append(ErrorDetail(loc=["status"], msg=str(e), type="ValueError"))
     try:
-        username_instance = validate_username(created_by__username) if created_by__username else None
+        user_instance = validate_username(created_by__username) if created_by__username else None
     except ValueError as e:
         logger.info(f"Username validation failed. {e}")
         errors.append(ErrorDetail(loc=["created_by__username"], msg=str(e), type="ValueError"))
@@ -325,7 +340,9 @@ async def list_tasks(
 
     task_content_schema_with_username = TaskContentSchema()
     tasks_queryset = get_queryset(
-        _due_date=due_date_instance
+        _due_date=due_date_instance,
+        _status=status_instance,
+        _user=user_instance,
     )
 
     serialized_tasks = task_content_schema_with_username.dump(tasks_queryset, many=True)
