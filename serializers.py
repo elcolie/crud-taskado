@@ -3,8 +3,10 @@ from marshmallow import fields, Schema
 from marshmallow import validate
 from marshmallow.fields import Nested
 from marshmallow_sqlalchemy import SQLAlchemySchema
+from sqlalchemy import create_engine
 from sqlmodel import Session
 
+from app import DATABASE_URL
 from models import TaskContent, User, StatusEnum
 
 
@@ -32,7 +34,7 @@ class UserSchema(BaseSchema):
     username = fields.String()
 
 
-class TaskContentSchema(BaseSchema):
+class BaseTaskContentSchema(BaseSchema):
     """Schema for TaskContent."""
     class Meta(BaseSchema.Meta):
         """Meta class for TaskContentSchema."""
@@ -47,6 +49,9 @@ class TaskContentSchema(BaseSchema):
     status = fields.String(validate=validate.OneOf([
         StatusEnum.pending, StatusEnum.in_progress, StatusEnum.completed]))
     created_by = fields.Integer()
+
+
+class TaskContentSchema(BaseTaskContentSchema):
     username = fields.String()
 
     # Replace created_by with nested serialization
@@ -58,3 +63,18 @@ class TaskContentSchema(BaseSchema):
     # created_by = fields.Nested(UserSchema, attribute="id")  # created_by does not show up.
     # created_by = Nested(UserSchema, attribute="username")  # created_by does not show up.
 
+
+class ListTaskSchemaOutput(BaseTaskContentSchema):
+    """List task schema."""
+    created_by__username: str | None = fields.String()
+    updated_by: int | None = fields.Integer()
+    updated_by__username: str | None = fields.String()
+
+
+def get_user(user_id: int) -> User:
+    """Get user by id."""
+    # Create the database engine
+    engine = create_engine(DATABASE_URL, echo=True)
+
+    with Session(engine) as session:
+        return session.query(User).filter(User.id == user_id).first()

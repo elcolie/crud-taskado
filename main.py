@@ -18,7 +18,7 @@ from sqlmodel import Session
 # Database connection url
 from app import DATABASE_URL
 from models import StatusEnum, TaskContent, User, CurrentTaskContent
-from serializers import TaskContentSchema
+from serializers import TaskContentSchema, ListTaskSchemaOutput, get_user
 from validate_input import GenericTaskInput, UpdateTask, CheckTaskId, check_due_date_format
 
 # Create an alias for the User table
@@ -167,6 +167,7 @@ async def update_task(payload: UpdateTask) -> typ.Union[
             # Update the timestamp on this task instance.
             current_task_instance = session.query(CurrentTaskContent).filter(
                 CurrentTaskContent.id == payload.id).first()
+            current_task_instance.identifier = new_identifier
             current_task_instance.updated_by = task_content_instance.created_by
             current_task_instance.updated_at = new_content.created_at
 
@@ -247,36 +248,71 @@ async def get_task(task_id: int) -> typ.Union[
 def get_queryset(
     _due_date: typ.Optional[date],
     _status: typ.Optional[StatusEnum],
-    _user: typ.Optional[User],
-) -> sqlalchemy.orm.query.Query:
+    _created_user: typ.Optional[User],
+    _updated_user: typ.Optional[User],
+) -> typ.Tuple[CurrentTaskContent, TaskContent, User]:
     """Get the queryset of tasks."""
     with (Session(engine) as session):
-        # List out available id.
-        available_id_list = session.query(CurrentTaskContent).all()
-        available_identifier_list = [i.identifier for i in available_id_list]
-
-        if _user is not None:
-            # Get task and id
-            queryset_tasks = session.query(TaskContent).filter(
-                TaskContent.identifier.in_(available_identifier_list),
-                or_(TaskContent.due_date == _due_date, _due_date is None),
-                or_(TaskContent.status == _status, _status is None),
-                or_(TaskContent.created_by == _user.id, _user is None),
-            ).subquery()
+        if _updated_user is not None and _created_user is not None:
+            # List out available id.
+            available_id_list = session.query(CurrentTaskContent).filter(
+                or_(CurrentTaskContent.updated_by == _updated_user.id, _updated_user is None),
+                or_(CurrentTaskContent.created_by == _created_user.id, _created_user is None)
+            ).all()
+        elif _updated_user is None and _created_user is not None:
+            available_id_list = session.query(CurrentTaskContent).filter(
+                or_(CurrentTaskContent.created_by == _created_user.id, _created_user is None)
+            ).all()
+        elif _updated_user is not None and _created_user is None:
+            available_id_list = session.query(CurrentTaskContent).filter(
+                or_(CurrentTaskContent.updated_by == _updated_user.id, _updated_user is None),
+            ).all()
         else:
-            queryset_tasks = session.query(TaskContent).filter(
-                TaskContent.identifier.in_(available_identifier_list),
-                or_(TaskContent.due_date == _due_date, _due_date is None),
-                or_(TaskContent.status == _status, _status is None),
-            ).subquery()
+            # elif _updated_user is None and _user is None:
+            available_id_list = session.query(CurrentTaskContent).all()
 
-        # Get username and id
-        username_query = session.query(User.username, User.id).subquery()
+        cleaned_id_list = [i.id for i in available_id_list]
 
-        # Join the queryset and username
-        final_query = session.query(queryset_tasks, username_query).outerjoin(
-            username_query, and_(queryset_tasks.c.created_by == username_query.c.id)
+        # Find the latest identifier from available_id_list
+        available_identifier_list = session.query(CurrentTaskContent.identifier).filter(
+            CurrentTaskContent.id.in_(cleaned_id_list)
+        ).all()
+        cleaned_available_identifier_list = [i[0] for i in available_identifier_list]
+
+        final_query = session.query(
+            CurrentTaskContent,
+            TaskContent,
+            User,
+        ).outerjoin(
+            TaskContent,
+            and_(
+                CurrentTaskContent.id == TaskContent.id,
+                CurrentTaskContent.identifier == TaskContent.identifier,
+                TaskContent.is_deleted == False,
+            )
+        ).outerjoin(
+            User,
+            or_(TaskContent.created_by == User.id, TaskContent.created_by is None)
+        ).filter(
+            TaskContent.due_date == _due_date if _due_date else True,
+            TaskContent.status == _status if _status else True,
+            CurrentTaskContent.identifier.in_(cleaned_available_identifier_list),
+        ).filter(
+            or_(
+                CurrentTaskContent.created_by == _created_user.id
+                if _created_user is not None else None,
+                _created_user is None
+            )
+        ).filter(
+            or_(
+                CurrentTaskContent.updated_by == _updated_user.id
+                if _updated_user is not None else None,
+                _updated_user is None
+            )
         )
+
+        # for idx, i in enumerate(final_query):
+        #     print(f"{idx} == {i}")
         return final_query
 
 
@@ -308,7 +344,8 @@ def validate_username(str_username: str) -> User:
 @app.get("/")
 async def list_tasks(
     response: Response,
-    due_date: str = None, task_status: str = None, created_by__username: str = None,
+    due_date: str = None, task_status: str = None,
+    created_by__username: str = None, updated_by__username: str = None
 ) -> typ.Dict[str, typ.Union[typ.Any, typ.List[ErrorDetail]]]:
     """Endpoint to list all tasks."""
     errors: typ.List[ErrorDetail] = []
@@ -316,6 +353,7 @@ async def list_tasks(
     due_date_instance: typ.Optional[date] = None
     status_instance: typ.Optional[StatusEnum] = None
     user_instance: typ.Optional[User] = None
+    updated_user_instance: typ.Optional[User] = None
     try:
         due_date_instance = validate_due_date(due_date) if due_date else None
     except ValueError as e:
@@ -331,21 +369,50 @@ async def list_tasks(
     except ValueError as e:
         logger.info(f"Username validation failed. {e}")
         errors.append(ErrorDetail(loc=["created_by__username"], msg=str(e), type="ValueError"))
-
+    try:
+        updated_user_instance = validate_username(updated_by__username) if updated_by__username else None
+    except ValueError as e:
+        logger.info(f"Updated username validation failed. {e}")
+        errors.append(ErrorDetail(loc=["updated_by__username"], msg=str(e), type="ValueError"))
     if len(errors) > 0:
         response.status_code = status.HTTP_406_NOT_ACCEPTABLE
         return {
             'message': errors
         }
 
-    task_content_schema_with_username = TaskContentSchema()
-    tasks_queryset = get_queryset(
+    tasks_results: typ.Tuple[CurrentTaskContent, TaskContent, User] = get_queryset(
         _due_date=due_date_instance,
         _status=status_instance,
-        _user=user_instance,
+        _created_user=user_instance,
+        _updated_user=updated_user_instance,
+    )
+    list_task_schema_output = ListTaskSchemaOutput()
+
+    # Stick with class not using dictionary.
+
+    _list_tasks = []
+    for _task in tasks_results:
+        created_by: User = get_user(_task[0].created_by)
+        updated_by: User = get_user(_task[0].updated_by)
+        _list_tasks.append(
+            {
+                'id': _task[1].id,
+                'title': _task[1].title,
+                'description': _task[1].description,
+                'due_date': _task[1].due_date,
+                'status': _task[1].status,
+                'created_by': _task[0].created_by,
+                'updated_by': _task[0].updated_by,
+
+                # Should wrap into single query.
+                'created_by__username': created_by.username if created_by is not None else None,
+                'updated_by__username': updated_by.username if updated_by is not None else None
+            }
+        )
+    serialized_tasks = list_task_schema_output.dump(
+        _list_tasks, many=True
     )
 
-    serialized_tasks = task_content_schema_with_username.dump(tasks_queryset, many=True)
     return {
         'count': len(serialized_tasks),
         'tasks': serialized_tasks,

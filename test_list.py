@@ -2,6 +2,7 @@
 import typing as typ
 import unittest
 
+import httpx
 from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -43,6 +44,18 @@ class TestList(unittest.TestCase):
 
         el_id = 2  # Legacy support
         return el_id, first_task_id, second_task_id, third_task_id, fourth_task_id, fifth_task_id
+
+    def _test_user_created_sarit_updated(self) -> httpx.Response:
+        el_id, first_task_id, second_task_id, third_task_id, fourth_task_id, fifth_task_id = self.before_test()
+        update_response = client.put("/", json={
+            'id': first_task_id,
+            'title': "Test update the title",
+            'description': "Test update description",
+            'status': "completed",
+            'due_date': "2023-12-31",
+            'created_by': 1,  # Default is 10. Let's update with 1 aka(sarit).
+        })
+        return update_response
 
     def test_list_no_deleted_tasks(self) -> None:
         """List all tasks. Expect no deleted task."""
@@ -171,9 +184,98 @@ class TestList(unittest.TestCase):
     def test_filter_due_date_and_status_and_wrong_username(self) -> None:
         """Filter by created_by."""
         # User does exist in database, but has no task.
+        self.before_test()
         response = client.get("/?due_date=2022-12-31&task_status=pending&created_by__username=elcolie")
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {'count': 0, 'tasks': []}
+
+    def test_filter_created_by_username_and_due_date(self) -> None:
+        """Filter by created_by."""
+        self.before_test()
+        response = client.get("/?created_by__username=test_user&due_date=2022-12-31")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['count'] == 4
+
+    def test_filter_created_by_wrong_username_and_valid_due_date(self) -> None:
+        """Filter by created_by."""
+        self.before_test()
+        response = client.get("/?created_by__username=elcolie&due_date=2022-12-31")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['count'] == 0
+
+    def test_filter_valid_created_by_and_valid_updated_by(self) -> None:
+        """Filter by created_by, and updated_by username."""
+        update_response = self._test_user_created_sarit_updated()
+        response = client.get("/?created_by__username=test_user&updated_by__username=sarit")
+
+        assert update_response.status_code == status.HTTP_200_OK
+        assert update_response.json() == {"message": "Instance updated successfully!"}
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'count': 1, 'tasks': [
+            {'id': 1, 'title': 'Test update the title', 'description': 'Test update description',
+             'due_date': '2023-12-31', 'status': 'StatusEnum.completed', 'created_by': 10,
+             'created_by__username': 'test_user', 'updated_by': 1, 'updated_by__username': 'sarit'}]}
+
+    def test_filter_created_by(self) -> None:
+        """Filter by created_by username."""
+        update_response = self._test_user_created_sarit_updated()
+        response = client.get("/?created_by__username=test_user")
+        assert update_response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'count': 4, 'tasks': [
+            {'id': 2, 'title': 'Test Task with created_by', 'description': 'This is a test task',
+             'due_date': '2022-12-31', 'status': 'StatusEnum.pending', 'created_by': 10,
+             'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'},
+            {'id': 3, 'title': 'Test Task with created_by', 'description': 'This is a test task',
+             'due_date': '2022-12-31', 'status': 'StatusEnum.pending', 'created_by': 10,
+             'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'},
+            {'id': 4, 'title': 'Test Task with created_by', 'description': 'This is a test task',
+             'due_date': '2022-12-31', 'status': 'StatusEnum.pending', 'created_by': 10,
+             'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'},
+            {'id': 1, 'title': 'Test update the title', 'description': 'Test update description',
+             'due_date': '2023-12-31', 'status': 'StatusEnum.completed', 'created_by': 10,
+             'created_by__username': 'test_user', 'updated_by': 1, 'updated_by__username': 'sarit'}]}
+
+    def test_filter_updated_by(self) -> None:
+        """Filter by updated_by username."""
+        update_response = self._test_user_created_sarit_updated()
+        test_user_response = client.get("/?updated_by__username=test_user")
+        sarit_response = client.get("/?updated_by__username=sarit")
+        assert update_response.status_code == status.HTTP_200_OK
+        assert test_user_response.json() == {'count': 3, 'tasks': [
+            {'id': 2, 'title': 'Test Task with created_by', 'description': 'This is a test task',
+             'due_date': '2022-12-31', 'status': 'StatusEnum.pending', 'created_by': 10,
+             'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'},
+            {'id': 3, 'title': 'Test Task with created_by', 'description': 'This is a test task',
+             'due_date': '2022-12-31', 'status': 'StatusEnum.pending', 'created_by': 10,
+             'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'},
+            {'id': 4, 'title': 'Test Task with created_by', 'description': 'This is a test task',
+             'due_date': '2022-12-31', 'status': 'StatusEnum.pending', 'created_by': 10,
+             'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'}]}
+        assert sarit_response.json() == {'count': 1, 'tasks': [
+            {'id': 1, 'title': 'Test update the title', 'description': 'Test update description',
+             'due_date': '2023-12-31', 'status': 'StatusEnum.completed', 'created_by': 10,
+             'created_by__username': 'test_user', 'updated_by': 1, 'updated_by__username': 'sarit'}]}
+
+    def test_filter_wrong_created_by_and_valid_updated_by(self) -> None:
+        """Filter by created_by, and updated_by username."""
+        update_response = self._test_user_created_sarit_updated()
+        response = client.get("/?created_by__username=elcolie&updated_by__username=taksin")
+        assert update_response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
+        assert response.json() == {
+            'message': [{'loc': ['updated_by__username'], 'msg': 'User does not exist.', 'type': 'ValueError'}]}
+
+    def test_filter_invalid_created_by_and_valid_updated_by(self) -> None:
+        """Filter by created_by, and updated_by username."""
+        update_response = self._test_user_created_sarit_updated()
+        response = client.get("/?created_by__username=maew&updated_by__username=taksin")
+        assert update_response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
+        assert response.json() == {
+            'message': [{'loc': ['created_by__username'], 'msg': 'User does not exist.', 'type': 'ValueError'},
+                        {'loc': ['updated_by__username'], 'msg': 'User does not exist.', 'type': 'ValueError'}]}
 
 
 if __name__ == "__main__":
