@@ -1,17 +1,16 @@
 """Deserialize the instance to a dictionary."""
-from marshmallow import fields, Schema
-from marshmallow import validate
+from marshmallow import fields, validate
 from marshmallow.fields import Nested
 from marshmallow_sqlalchemy import SQLAlchemySchema
 from sqlalchemy import create_engine
 from sqlmodel import Session
 
 from app import DATABASE_URL
-from models import TaskContent, User, StatusEnum
-
+from models import StatusEnum, TaskContent, User
 
 # Use this because marshmellow can exclude identifier field. But for clarity.
 # I intentionally not use `exclude` to be explicit.
+
 
 class BaseSchema(SQLAlchemySchema):
     class Meta:
@@ -21,12 +20,13 @@ class BaseSchema(SQLAlchemySchema):
 class SmartNested(Nested):
     def serialize(self, attr, obj, accessor=None):
         if attr not in obj.__dict__:
-            return {"id": int(getattr(obj, attr + "_id"))}
-        return super(SmartNested, self).serialize(attr, obj, accessor)
+            return {'id': int(getattr(obj, attr + '_id'))}
+        return super().serialize(attr, obj, accessor)
 
 
 class UserSchema(BaseSchema):
     """Schema for User."""
+
     class Meta(BaseSchema.Meta):
         model = User
 
@@ -36,8 +36,10 @@ class UserSchema(BaseSchema):
 
 class BaseTaskContentSchema(BaseSchema):
     """Schema for TaskContent."""
+
     class Meta(BaseSchema.Meta):
         """Meta class for TaskContentSchema."""
+
         model = TaskContent
         load_instance = True
         include_relationships = True
@@ -46,8 +48,11 @@ class BaseTaskContentSchema(BaseSchema):
     title = fields.String()
     description = fields.String()
     due_date = fields.Date()
-    status = fields.String(validate=validate.OneOf([
-        StatusEnum.pending, StatusEnum.in_progress, StatusEnum.completed]))
+    status = fields.String(
+        validate=validate.OneOf(
+            [StatusEnum.pending, StatusEnum.in_progress, StatusEnum.completed]
+        )
+    )
     created_by = fields.Integer()
 
 
@@ -66,6 +71,7 @@ class TaskContentSchema(BaseTaskContentSchema):
 
 class ListTaskSchemaOutput(BaseTaskContentSchema):
     """List task schema."""
+
     created_by__username: str | None = fields.String()
     updated_by: int | None = fields.Integer()
     updated_by__username: str | None = fields.String()

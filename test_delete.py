@@ -8,8 +8,9 @@ from sqlmodel import Session
 
 from app import DATABASE_URL
 from main import app
-from models import TaskContent, CurrentTaskContent
-from test_gadgets import manual_create_task, remove_all_tasks_and_users, prepare_users_for_test
+from models import CurrentTaskContent, TaskContent
+from test_gadgets import (manual_create_task, prepare_users_for_test,
+                          remove_all_tasks_and_users)
 
 client = TestClient(app)
 engine = create_engine(DATABASE_URL, echo=True)
@@ -34,23 +35,29 @@ class TestDelete(unittest.TestCase):
 
         with Session(engine) as session:
             # Check history in database
-            history = session.query(TaskContent).filter(TaskContent.id == task_id).first()
+            history = (
+                session.query(TaskContent).filter(TaskContent.id == task_id).first()
+            )
             assert history.is_deleted is True
 
             # Check current_task in database
-            current = session.query(CurrentTaskContent).filter(CurrentTaskContent.id == task_id).first()
+            current = (
+                session.query(CurrentTaskContent)
+                .filter(CurrentTaskContent.id == task_id)
+                .first()
+            )
             assert current is None
             assert 0 == session.query(CurrentTaskContent).count()
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.json() == {"message": "Instance deleted successfully!"}
+        assert response.json() == {'message': 'Instance deleted successfully!'}
 
     def test_delete_invalid_task(self) -> None:
         """Test invalid task id."""
-        response = client.delete("/999")
+        response = client.delete('/999')
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json() == {"detail": "Task not found"}
+        assert response.json() == {'detail': 'Task not found'}
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
