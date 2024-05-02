@@ -10,6 +10,8 @@ from sqlalchemy import create_engine
 from app import DATABASE_URL
 from main import app
 from test_gadgets import manual_create_task, remove_all_tasks_and_users, prepare_users_for_test
+from faker import Faker
+from sqlmodel import Session
 
 client = TestClient(app)
 
@@ -187,7 +189,7 @@ class TestList(unittest.TestCase):
         self.before_test()
         response = client.get("/?due_date=2022-12-31&task_status=pending&created_by__username=elcolie")
         assert response.status_code == status.HTTP_200_OK
-        assert response.json() == {'count': 0, 'tasks': []}
+        assert response.json() == {'count': 0, 'tasks': [], 'next': None, 'previous': None}
 
     def test_filter_created_by_username_and_due_date(self) -> None:
         """Filter by created_by."""
@@ -215,7 +217,8 @@ class TestList(unittest.TestCase):
         assert response.json() == {'count': 1, 'tasks': [
             {'id': 1, 'title': 'Test update the title', 'description': 'Test update description',
              'due_date': '2023-12-31', 'status': 'StatusEnum.completed', 'created_by': 10,
-             'created_by__username': 'test_user', 'updated_by': 1, 'updated_by__username': 'sarit'}]}
+             'created_by__username': 'test_user', 'updated_by': 1, 'updated_by__username': 'sarit'}], 'next': None,
+                                   'previous': None}
 
     def test_filter_created_by(self) -> None:
         """Filter by created_by username."""
@@ -224,6 +227,9 @@ class TestList(unittest.TestCase):
         assert update_response.status_code == status.HTTP_200_OK
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {'count': 4, 'tasks': [
+            {'id': 1, 'title': 'Test update the title', 'description': 'Test update description',
+             'due_date': '2023-12-31', 'status': 'StatusEnum.completed', 'created_by': 10,
+             'created_by__username': 'test_user', 'updated_by': 1, 'updated_by__username': 'sarit'},
             {'id': 2, 'title': 'Test Task with created_by', 'description': 'This is a test task',
              'due_date': '2022-12-31', 'status': 'StatusEnum.pending', 'created_by': 10,
              'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'},
@@ -232,10 +238,8 @@ class TestList(unittest.TestCase):
              'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'},
             {'id': 4, 'title': 'Test Task with created_by', 'description': 'This is a test task',
              'due_date': '2022-12-31', 'status': 'StatusEnum.pending', 'created_by': 10,
-             'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'},
-            {'id': 1, 'title': 'Test update the title', 'description': 'Test update description',
-             'due_date': '2023-12-31', 'status': 'StatusEnum.completed', 'created_by': 10,
-             'created_by__username': 'test_user', 'updated_by': 1, 'updated_by__username': 'sarit'}]}
+             'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'}], 'next': None,
+                                   'previous': None}
 
     def test_filter_updated_by(self) -> None:
         """Filter by updated_by username."""
@@ -252,11 +256,13 @@ class TestList(unittest.TestCase):
              'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'},
             {'id': 4, 'title': 'Test Task with created_by', 'description': 'This is a test task',
              'due_date': '2022-12-31', 'status': 'StatusEnum.pending', 'created_by': 10,
-             'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'}]}
+             'created_by__username': 'test_user', 'updated_by': 10, 'updated_by__username': 'test_user'}], 'next': None,
+                                             'previous': None}
         assert sarit_response.json() == {'count': 1, 'tasks': [
             {'id': 1, 'title': 'Test update the title', 'description': 'Test update description',
              'due_date': '2023-12-31', 'status': 'StatusEnum.completed', 'created_by': 10,
-             'created_by__username': 'test_user', 'updated_by': 1, 'updated_by__username': 'sarit'}]}
+             'created_by__username': 'test_user', 'updated_by': 1, 'updated_by__username': 'sarit'}], 'next': None,
+                                         'previous': None}
 
     def test_filter_wrong_created_by_and_valid_updated_by(self) -> None:
         """Filter by created_by, and updated_by username."""
@@ -276,6 +282,46 @@ class TestList(unittest.TestCase):
         assert response.json() == {
             'message': [{'loc': ['created_by__username'], 'msg': 'User does not exist.', 'type': 'ValueError'},
                         {'loc': ['updated_by__username'], 'msg': 'User does not exist.', 'type': 'ValueError'}]}
+
+    def test_pagination(self) -> None:
+        """Test pagination expect 10 tasks per page."""
+        faker = Faker()
+        faker.seed_instance(4321)
+
+        with Session(engine) as session:
+            for i in range(35):
+                _ = client.post("/create-task/", json={
+                    "title": faker.text()[:40],
+                    "description": faker.text()[:40],
+                    "status": faker.random_element(elements=("pending", "in_progress", "completed")),
+                    "due_date": faker.date(),
+                    "created_by": faker.random_element(elements=(1, 2, 10)),
+                })
+            session.commit()
+        second_page_size_by_five = client.get("/?_page_number=2&_per_page=5")
+        first_page_size_by_seven = client.get("/?_page_number=1&_per_page=7")
+        last_page_size_by_seven = client.get("/?_page_number=5&_per_page=7")
+
+        # Check 2nd page, size by 5
+        second_page_id_list = [task['id'] for task in second_page_size_by_five.json()['tasks']]
+        second_page_id_list.sort()
+        assert [6, 7, 8, 9, 10] == second_page_id_list
+        assert second_page_size_by_five.json()['next'] is not None
+        assert second_page_size_by_five.json()['previous'] is not None
+
+        # Check 1st page, size by 7
+        first_page_id_list = [task['id'] for task in first_page_size_by_seven.json()['tasks']]
+        first_page_id_list.sort()
+        assert [1, 2, 3, 4, 5, 6, 7] == first_page_id_list
+        assert first_page_size_by_seven.json()['next'] is not None
+        assert first_page_size_by_seven.json()['previous'] is None
+
+        # Check 5th page(aka last page), size by 7
+        last_page_id_list = [task['id'] for task in last_page_size_by_seven.json()['tasks']]
+        last_page_id_list.sort()
+        assert [29, 30, 31, 32, 33, 34, 35] == last_page_id_list
+        assert last_page_size_by_seven.json()['next'] is None
+        assert last_page_size_by_seven.json()['previous'] is not None
 
 
 if __name__ == "__main__":

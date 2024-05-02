@@ -14,7 +14,7 @@ class StatusEnum(enum.Enum):
 
 class TaskContent(SQLModel, table=True):
     """Model class for TaskContent history."""
-    identifier: str = Field(primary_key=True)   # For redo mechanism
+    identifier: str = Field(primary_key=True)  # For redo mechanism
     id: int = Field(primary_key=False)  # For human use
     title: str = Field(nullable=True)
     description: str = Field(nullable=True)
@@ -28,9 +28,9 @@ class TaskContent(SQLModel, table=True):
 class CurrentTaskContent(SQLModel, table=True):
     """Model class for current."""
     # https://github.com/tiangolo/sqlmodel/issues/114
-    __table_args__ = (UniqueConstraint("identifier", "id"), )
+    __table_args__ = (UniqueConstraint("identifier", "id"),)
 
-    identifier: str = Field(primary_key=True)   # For redo mechanism
+    identifier: str = Field(primary_key=True)  # For redo mechanism
     id: int = Field(primary_key=False)  # For human use
     created_by: int = Field(nullable=True, default=None, foreign_key="user.id")
     updated_by: int = Field(nullable=True, default=None, foreign_key="user.id")

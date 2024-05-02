@@ -57,14 +57,21 @@ def test_this_func(test_case: typ.Callable) -> None:
     return wrapper()
 
 
-def manual_create_task(has_user: bool = True, user_id: int = 10) -> int:
+def manual_create_task(
+    has_user: bool = True,
+    user_id: int = 10,
+    title: str = "Test Task with created_by",
+    description: str = "This is a test task",
+    _status: str = "pending",
+    due_date: str = "2022-12-31",
+) -> int:
     """Helper function to create a task with user."""
     if has_user:
         response_a = client.post("/create-task/", json={
-            "title": "Test Task with created_by",
-            "description": "This is a test task",
-            "status": "pending",
-            "due_date": "2022-12-31",
+            "title": title,
+            "description": description,
+            "status": _status,
+            "due_date": due_date,
             "created_by": user_id
         })
         # Raise error if unable to create user.

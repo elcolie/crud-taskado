@@ -1,7 +1,7 @@
 import logging
 import typing as typ
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 import ipdb
 import sqlalchemy
@@ -10,7 +10,7 @@ from fastapi import HTTPException
 from fastapi import Response
 from pydantic import BaseModel
 from pydantic import ValidationError
-from sqlalchemy import create_engine, or_
+from sqlalchemy import create_engine, or_, desc
 from sqlalchemy import func, and_
 from sqlalchemy.orm import aliased
 from sqlmodel import Session
@@ -162,6 +162,7 @@ async def update_task(payload: UpdateTask) -> typ.Union[
                 'due_date': parse_date(task_content_instance.due_date),
                 'status': task_content_instance.status,
                 'created_by': task_content_instance.created_by,
+                'created_at': datetime.now(),
             })
 
             # Update the timestamp on this task instance.
@@ -250,8 +251,11 @@ def get_queryset(
     _status: typ.Optional[StatusEnum],
     _created_user: typ.Optional[User],
     _updated_user: typ.Optional[User],
-) -> typ.Tuple[CurrentTaskContent, TaskContent, User]:
+    # _page_number: int = 1,  # Page number. Lazy load
+    # _per_page: int = 10, # Number of items per page
+) -> sqlalchemy.orm.query.Query:
     """Get the queryset of tasks."""
+    # offset = (_page_number - 1) * _per_page
     with (Session(engine) as session):
         if _updated_user is not None and _created_user is not None:
             # List out available id.
@@ -309,7 +313,9 @@ def get_queryset(
                 if _updated_user is not None else None,
                 _updated_user is None
             )
-        )
+        ).order_by(TaskContent.id.asc())
+        # Use lazy load when tasks is too much.
+        # ).offset(offset).limit(_per_page)
 
         # for idx, i in enumerate(final_query):
         #     print(f"{idx} == {i}")
@@ -345,7 +351,9 @@ def validate_username(str_username: str) -> User:
 async def list_tasks(
     response: Response,
     due_date: str = None, task_status: str = None,
-    created_by__username: str = None, updated_by__username: str = None
+    created_by__username: str = None, updated_by__username: str = None,
+    _page_number: int = 1,  # Page number
+    _per_page: int = 10,    # Number of items per page
 ) -> typ.Dict[str, typ.Union[typ.Any, typ.List[ErrorDetail]]]:
     """Endpoint to list all tasks."""
     errors: typ.List[ErrorDetail] = []
@@ -380,7 +388,7 @@ async def list_tasks(
             'message': errors
         }
 
-    tasks_results: typ.Tuple[CurrentTaskContent, TaskContent, User] = get_queryset(
+    tasks_results = get_queryset(
         _due_date=due_date_instance,
         _status=status_instance,
         _created_user=user_instance,
@@ -412,12 +420,32 @@ async def list_tasks(
     serialized_tasks = list_task_schema_output.dump(
         _list_tasks, many=True
     )
+    start = (_page_number - 1) * _per_page
+    end = start + _per_page
+    data_length = len(serialized_tasks)
 
-    return {
-        'count': len(serialized_tasks),
-        'tasks': serialized_tasks,
-    }
-
+    if end >= data_length:
+        if _page_number > 1:
+            previous = f"/?due_date={due_date}&task_status={task_status}&created_by__username={created_by__username}&updated_by__username={updated_by__username}&_page_number={_page_number - 1}&_per_page={_per_page}"
+        else:
+            previous = None
+        return {
+            'count': data_length,
+            'tasks': serialized_tasks[start:end],
+            'next': None,
+            'previous': previous
+        }
+    else:
+        if _page_number > 1:
+            previous = f"/?due_date={due_date}&task_status={task_status}&created_by__username={created_by__username}&updated_by__username={updated_by__username}&_page_number={_page_number - 1}&_per_page={_per_page}"
+        else:
+            previous = None
+        return {
+            'count': data_length,
+            'tasks': serialized_tasks[start:end],
+            'next': f"/?due_date={due_date}&task_status={task_status}&created_by__username={created_by__username}&updated_by__username={updated_by__username}&_page_number={_page_number + 1}&_per_page={_per_page}",
+            'previous': previous
+        }
 
 # TODO. Undo the last action.
 @app.post("/undo/{task_id}")
@@ -429,5 +457,53 @@ async def undo_task(task_id: int) -> typ.Union[TaskSuccessMessage]:
         logger.error(f"Validation failed UNDO method: {e}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unable to undo. Task not found")
     else:
-        ipdb;
-        ipdb.set_trace()
+        with (Session(engine) as session):
+            # Get the last revision of the task
+            task = session.query(TaskContent).filter(TaskContent.id == task_instance.id).order_by(
+                TaskContent.created_at.desc()).first()
+
+            current_task_instance = session.query(CurrentTaskContent).filter(
+                CurrentTaskContent.id == task.id).first()
+
+            # Undo the PUT operation
+            if current_task_instance is not None:
+                # Remove the latest of tast_content
+                last_task_instance = session.query(TaskContent).filter(
+                    TaskContent.id == task.id
+                ).order_by(desc(TaskContent.created_at)).first()
+
+                session.delete(last_task_instance)
+                session.commit()
+
+                new_last_task_instance = session.query(TaskContent).filter(
+                    TaskContent.id == task.id
+                ).order_by(desc(TaskContent.created_at)).first()
+
+                if new_last_task_instance is None:
+                    # It means task is created and immediately run undo.
+                    raise HTTPException(status_code=status.HTTP_425_TOO_EARLY, detail="Unable to undo new created task.")
+                else:
+                    # Change the identifier on current_task_instance
+                    current_task_instance.identifier = new_last_task_instance.identifier
+
+            else:
+                # Undo the DELETE operation
+                # Get the current task instance
+                current_task_instance = CurrentTaskContent(**{
+                    'identifier': task.identifier,
+                    'id': task.id,
+                    'created_by': task.created_by,
+                    'updated_by': task.created_by,
+                    'created_at': task.created_at,
+                    'updated_at': datetime.now(),
+                })
+
+            # Mark the history as `is_deleted`
+            task.is_deleted = False
+
+            # Save the current task table.
+            session.add(current_task_instance)
+            session.commit()
+            return TaskSuccessMessage(
+                message="Instance restored successfully!",
+            )

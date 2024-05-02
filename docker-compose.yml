@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:15
     container_name: my-postgres
+    command: -c 'max_connections=200' # Solve max_connections problem. https://stackoverflow.com/a/54484269/1019455
     volumes:
       - ./db_data:/var/lib/postgresql/data
     ports:

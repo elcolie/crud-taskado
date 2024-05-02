@@ -6,13 +6,20 @@ Be careful, this script is not intended to run in the CI/CD pipeline.
 Because it mutates the database.
 """
 import unittest
+import time
+import datetime
 
 from fastapi import status
 from fastapi.testclient import TestClient
 
+from app import DATABASE_URL
 from main import app
+from models import TaskContent, StatusEnum, User
 from test_gadgets import manual_create_task, remove_all_tasks_and_users, prepare_users_for_test
+from sqlmodel import Session
+from sqlalchemy import create_engine, desc, asc
 
+engine = create_engine(DATABASE_URL, echo=True)
 client = TestClient(app)
 
 
@@ -31,16 +38,32 @@ class TestPut(unittest.TestCase):
     def test_update_task(self) -> None:
         """Test happy path for updating a task."""
         task_id = manual_create_task()
+        time.sleep(1)  # To distinguish the updated_at
+        user_id = 2
         response = client.put("/", json={
             "id": task_id,
             "title": "New updated title",
             "description": "New desc",
-            "status": "pending",
-            "due_date": "2022-12-31",
-            "created_by": 2
+            "status": "completed",
+            "due_date": "2333-12-31",
+            "created_by": user_id
         })
+        with Session(engine) as session:
+            first_task_content = session.query(TaskContent).filter(
+                TaskContent.id == task_id
+            ).order_by(asc(TaskContent.created_at)).first()
+            last_task_content = session.query(TaskContent).filter(
+                TaskContent.id == task_id
+            ).order_by(desc(TaskContent.created_at)).first()
+
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {"message": "Instance updated successfully!"}
+        assert last_task_content.title == "New updated title"
+        assert last_task_content.description == "New desc"
+        assert last_task_content.status == StatusEnum.completed
+        assert last_task_content.due_date == datetime.date(2333, 12, 31)
+        assert last_task_content.created_by == user_id
+        assert last_task_content.created_at > first_task_content.created_at
 
     def test_wrong_due_date(self) -> None:
         """Test invalid date format."""
