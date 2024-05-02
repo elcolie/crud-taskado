@@ -3,15 +3,16 @@ import typing as typ
 import unittest
 
 import httpx
+from faker import Faker
 from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlmodel import Session
 
 from app import DATABASE_URL
 from main import app
+from pagination_gadgets import generate_query_params
 from test_gadgets import manual_create_task, remove_all_tasks_and_users, prepare_users_for_test
-from faker import Faker
-from sqlmodel import Session
 
 client = TestClient(app)
 
@@ -46,6 +47,21 @@ class TestList(unittest.TestCase):
 
         el_id = 2  # Legacy support
         return el_id, first_task_id, second_task_id, third_task_id, fourth_task_id, fifth_task_id
+
+    def _make_35_tasks(self) -> None:
+        faker = Faker()
+        faker.seed_instance(4321)
+
+        with Session(engine) as session:
+            for i in range(35):
+                _ = client.post("/create-task/", json={
+                    "title": faker.text()[:40],
+                    "description": faker.text()[:40],
+                    "status": faker.random_element(elements=("pending", "in_progress", "completed")),
+                    "due_date": faker.date(),
+                    "created_by": faker.random_element(elements=(1, 2, 10)),
+                })
+            session.commit()
 
     def _test_user_created_sarit_updated(self) -> httpx.Response:
         el_id, first_task_id, second_task_id, third_task_id, fourth_task_id, fifth_task_id = self.before_test()
@@ -285,19 +301,7 @@ class TestList(unittest.TestCase):
 
     def test_pagination(self) -> None:
         """Test pagination expect 10 tasks per page."""
-        faker = Faker()
-        faker.seed_instance(4321)
-
-        with Session(engine) as session:
-            for i in range(35):
-                _ = client.post("/create-task/", json={
-                    "title": faker.text()[:40],
-                    "description": faker.text()[:40],
-                    "status": faker.random_element(elements=("pending", "in_progress", "completed")),
-                    "due_date": faker.date(),
-                    "created_by": faker.random_element(elements=(1, 2, 10)),
-                })
-            session.commit()
+        self._make_35_tasks()
         second_page_size_by_five = client.get("/?_page_number=2&_per_page=5")
         first_page_size_by_seven = client.get("/?_page_number=1&_per_page=7")
         last_page_size_by_seven = client.get("/?_page_number=5&_per_page=7")
@@ -322,6 +326,34 @@ class TestList(unittest.TestCase):
         assert [29, 30, 31, 32, 33, 34, 35] == last_page_id_list
         assert last_page_size_by_seven.json()['next'] is None
         assert last_page_size_by_seven.json()['previous'] is not None
+
+    def test_filter_and_pagination(self) -> None:
+        """Filter + pagination."""
+        self._make_35_tasks()
+        post_response = client.post("/create-task/", json={
+            "title": "Distinguish from the rest",
+            "description": "Tuna VS Sardine",
+            "status": "in_progress",
+            "due_date": "3000-12-31",
+            "created_by": 10
+        })
+        response = client.get("/?due_date=3000-12-31&_page_number=1&_per_page=5")
+        assert post_response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'count': 1, 'tasks': [
+            {'id': 36, 'title': 'Distinguish from the rest', 'description': 'Tuna VS Sardine', 'due_date': '3000-12-31',
+             'status': 'StatusEnum.in_progress', 'created_by': 10, 'created_by__username': 'test_user',
+             'updated_by': 10, 'updated_by__username': 'test_user'}], 'next': None, 'previous': None}
+
+    def test_generate_query_params(self) -> None:
+        """Generate query param."""
+        query_params = generate_query_params(
+            due_date="2022-12-31",
+            task_status="pending",
+            created_by__username="test_user",
+            updated_by__username="sarit"
+        )
+        assert query_params == "?due_date=2022-12-31&task_status=pending&created_by__username=test_user&updated_by__username=sarit&_page_number=1&_per_page=10"
 
 
 if __name__ == "__main__":

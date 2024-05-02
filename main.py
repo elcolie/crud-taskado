@@ -3,7 +3,6 @@ import typing as typ
 import uuid
 from datetime import date, datetime
 
-import ipdb
 import sqlalchemy
 from fastapi import FastAPI, status
 from fastapi import HTTPException
@@ -18,6 +17,7 @@ from sqlmodel import Session
 # Database connection url
 from app import DATABASE_URL
 from models import StatusEnum, TaskContent, User, CurrentTaskContent
+from pagination_gadgets import generate_query_params
 from serializers import TaskContentSchema, ListTaskSchemaOutput, get_user
 from validate_input import GenericTaskInput, UpdateTask, CheckTaskId, check_due_date_format
 
@@ -426,7 +426,14 @@ async def list_tasks(
 
     if end >= data_length:
         if _page_number > 1:
-            previous = f"/?due_date={due_date}&task_status={task_status}&created_by__username={created_by__username}&updated_by__username={updated_by__username}&_page_number={_page_number - 1}&_per_page={_per_page}"
+            previous = generate_query_params(
+                due_date=due_date,
+                task_status=task_status,
+                created_by__username=created_by__username,
+                updated_by__username=updated_by__username,
+                _page_number=_page_number - 1,
+                _per_page=_per_page
+            )
         else:
             previous = None
         return {
@@ -437,17 +444,32 @@ async def list_tasks(
         }
     else:
         if _page_number > 1:
-            previous = f"/?due_date={due_date}&task_status={task_status}&created_by__username={created_by__username}&updated_by__username={updated_by__username}&_page_number={_page_number - 1}&_per_page={_per_page}"
+            previous = generate_query_params(
+                due_date=due_date,
+                task_status=task_status,
+                created_by__username=created_by__username,
+                updated_by__username=updated_by__username,
+                _page_number=_page_number - 1,
+                _per_page=_per_page
+            )
         else:
             previous = None
+        _next = generate_query_params(
+            due_date=due_date,
+            task_status=task_status,
+            created_by__username=created_by__username,
+            updated_by__username=updated_by__username,
+            _page_number=_page_number + 1,
+            _per_page=_per_page
+        )
         return {
             'count': data_length,
             'tasks': serialized_tasks[start:end],
-            'next': f"/?due_date={due_date}&task_status={task_status}&created_by__username={created_by__username}&updated_by__username={updated_by__username}&_page_number={_page_number + 1}&_per_page={_per_page}",
+            '_next': next,
             'previous': previous
         }
 
-# TODO. Undo the last action.
+
 @app.post("/undo/{task_id}")
 async def undo_task(task_id: int) -> typ.Union[TaskSuccessMessage]:
     """Endpoint to undo a task."""
