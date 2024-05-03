@@ -22,10 +22,10 @@
 get `/?due_dates__lte=2021-09-01&status=completed&created_by__username=foo&updated_by__username=foo`
 
 # Undo Mechanism
-post = make new instance with new `identifier`
-put = make new instance with new `identifier`, but reuse the old `id`.
-delete = mark as deleted.
-post `/undo/<task_id>` = undelete the instance
+- `post` = make new instance with new `identifier`
+- `put` = make new instance with new `identifier`, but reuse the old `id`.
+- `delete` = mark as deleted.
+- `post` `/undo/<task_id>` = undelete the instance
 
 
 # Test
