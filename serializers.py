@@ -1,6 +1,5 @@
 """Deserialize the instance to a dictionary."""
 from marshmallow import fields, validate
-from marshmallow.fields import Nested
 from marshmallow_sqlalchemy import SQLAlchemySchema
 from sqlalchemy import create_engine
 from sqlmodel import Session
@@ -13,21 +12,24 @@ from models import StatusEnum, TaskContent, User
 
 
 class BaseSchema(SQLAlchemySchema):
-    class Meta:
+    """Base schema for SQLAlchemy."""
+    class Meta:     # pylint: disable=too-few-public-methods
+        """Meta class."""
         sqla_session = Session
 
 
-class SmartNested(Nested):
-    def serialize(self, attr, obj, accessor=None):
-        if attr not in obj.__dict__:
-            return {'id': int(getattr(obj, attr + '_id'))}
-        return super().serialize(attr, obj, accessor)
+# class SmartNested(Nested):
+#     def serialize(self, attr, obj, accessor=None):
+#         if attr not in obj.__dict__:
+#             return {'id': int(getattr(obj, attr + '_id'))}
+#         return super().serialize(attr, obj, accessor)
 
 
 class UserSchema(BaseSchema):
     """Schema for User."""
 
-    class Meta(BaseSchema.Meta):
+    class Meta(BaseSchema.Meta):  # pylint: disable=too-few-public-methods
+        """Meta class for UserSchema."""
         model = User
 
     id = fields.Integer()
@@ -37,7 +39,7 @@ class UserSchema(BaseSchema):
 class BaseTaskContentSchema(BaseSchema):
     """Schema for TaskContent."""
 
-    class Meta(BaseSchema.Meta):
+    class Meta(BaseSchema.Meta):  # pylint: disable=too-few-public-methods
         """Meta class for TaskContentSchema."""
 
         model = TaskContent
@@ -50,19 +52,18 @@ class BaseTaskContentSchema(BaseSchema):
     due_date = fields.Date()
     status = fields.String(
         validate=validate.OneOf(
-            [StatusEnum.pending, StatusEnum.in_progress, StatusEnum.completed]
+            [StatusEnum.PENDING, StatusEnum.IN_PROGRESS, StatusEnum.COMPLETED]
         )
     )
     created_by = fields.Integer()
 
 
 class TaskContentSchema(BaseTaskContentSchema):
+    """Task schema."""
     username = fields.String()
 
     # Replace created_by with nested serialization
     # created_by = fields.Nested(UserSchema, only=("id", "username"))
-
-    # TODO:
     # https://stackoverflow.com/questions/78389527/nested-payload-show-blank-dictionary-sqlalchemy-marshmallow
     # created_by = SmartNested(UserSchema)  # Got {}
     # created_by = fields.Nested(UserSchema, attribute="id")  # created_by does not show up.

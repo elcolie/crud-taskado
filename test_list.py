@@ -21,7 +21,7 @@ client = TestClient(app)
 engine = create_engine(DATABASE_URL, echo=True)
 
 
-class TestList(unittest.TestCase):
+class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
     """Test List, filter, and pagination."""
 
     def setUp(self) -> None:
@@ -59,7 +59,7 @@ class TestList(unittest.TestCase):
         faker.seed_instance(4321)
 
         with Session(engine) as session:
-            for i in range(35):
+            for __ in range(35):
                 _ = client.post(
                     '/create-task/',
                     json={
@@ -76,12 +76,12 @@ class TestList(unittest.TestCase):
 
     def _test_user_created_sarit_updated(self) -> httpx.Response:
         (
-            el_id,
+            _,
             first_task_id,
-            second_task_id,
-            third_task_id,
-            fourth_task_id,
-            fifth_task_id,
+            __,
+            ___,
+            ____,
+            _____,
         ) = self.before_test()
         update_response = client.put(
             '/',
@@ -100,11 +100,11 @@ class TestList(unittest.TestCase):
         """List all tasks. Expect no deleted task."""
         (
             el_id,
-            first_task_id,
+            _,
             second_task_id,
             third_task_id,
             fourth_task_id,
-            fifth_task_id,
+            __,
         ) = self.before_test()
         second_task_response = client.put(
             '/',
@@ -303,7 +303,7 @@ class TestList(unittest.TestCase):
                     'title': 'Test update the title',
                     'description': 'Test update description',
                     'due_date': '2023-12-31',
-                    'status': 'StatusEnum.completed',
+                    'status': 'StatusEnum.COMPLETED',
                     'created_by': 10,
                     'created_by__username': 'test_user',
                     'updated_by': 1,
@@ -328,7 +328,7 @@ class TestList(unittest.TestCase):
                     'title': 'Test update the title',
                     'description': 'Test update description',
                     'due_date': '2023-12-31',
-                    'status': 'StatusEnum.completed',
+                    'status': 'StatusEnum.COMPLETED',
                     'created_by': 10,
                     'created_by__username': 'test_user',
                     'updated_by': 1,
@@ -339,7 +339,7 @@ class TestList(unittest.TestCase):
                     'title': 'Test Task with created_by',
                     'description': 'This is a test task',
                     'due_date': '2022-12-31',
-                    'status': 'StatusEnum.pending',
+                    'status': 'StatusEnum.PENDING',
                     'created_by': 10,
                     'created_by__username': 'test_user',
                     'updated_by': 10,
@@ -350,7 +350,7 @@ class TestList(unittest.TestCase):
                     'title': 'Test Task with created_by',
                     'description': 'This is a test task',
                     'due_date': '2022-12-31',
-                    'status': 'StatusEnum.pending',
+                    'status': 'StatusEnum.PENDING',
                     'created_by': 10,
                     'created_by__username': 'test_user',
                     'updated_by': 10,
@@ -361,7 +361,7 @@ class TestList(unittest.TestCase):
                     'title': 'Test Task with created_by',
                     'description': 'This is a test task',
                     'due_date': '2022-12-31',
-                    'status': 'StatusEnum.pending',
+                    'status': 'StatusEnum.PENDING',
                     'created_by': 10,
                     'created_by__username': 'test_user',
                     'updated_by': 10,
@@ -386,7 +386,7 @@ class TestList(unittest.TestCase):
                     'title': 'Test Task with created_by',
                     'description': 'This is a test task',
                     'due_date': '2022-12-31',
-                    'status': 'StatusEnum.pending',
+                    'status': 'StatusEnum.PENDING',
                     'created_by': 10,
                     'created_by__username': 'test_user',
                     'updated_by': 10,
@@ -397,7 +397,7 @@ class TestList(unittest.TestCase):
                     'title': 'Test Task with created_by',
                     'description': 'This is a test task',
                     'due_date': '2022-12-31',
-                    'status': 'StatusEnum.pending',
+                    'status': 'StatusEnum.PENDING',
                     'created_by': 10,
                     'created_by__username': 'test_user',
                     'updated_by': 10,
@@ -408,7 +408,7 @@ class TestList(unittest.TestCase):
                     'title': 'Test Task with created_by',
                     'description': 'This is a test task',
                     'due_date': '2022-12-31',
-                    'status': 'StatusEnum.pending',
+                    'status': 'StatusEnum.PENDING',
                     'created_by': 10,
                     'created_by__username': 'test_user',
                     'updated_by': 10,
@@ -426,7 +426,7 @@ class TestList(unittest.TestCase):
                     'title': 'Test update the title',
                     'description': 'Test update description',
                     'due_date': '2023-12-31',
-                    'status': 'StatusEnum.completed',
+                    'status': 'StatusEnum.COMPLETED',
                     'created_by': 10,
                     'created_by__username': 'test_user',
                     'updated_by': 1,
@@ -534,7 +534,7 @@ class TestList(unittest.TestCase):
                     'title': 'Distinguish from the rest',
                     'description': 'Tuna VS Sardine',
                     'due_date': '3000-12-31',
-                    'status': 'StatusEnum.in_progress',
+                    'status': 'StatusEnum.IN_PROGRESS',
                     'created_by': 10,
                     'created_by__username': 'test_user',
                     'updated_by': 10,

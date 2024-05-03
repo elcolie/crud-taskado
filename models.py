@@ -1,3 +1,4 @@
+"""Model classes for this application."""
 import enum
 from datetime import date, datetime
 
@@ -8,9 +9,9 @@ from sqlmodel import Field, SQLModel
 class StatusEnum(enum.Enum):
     """Enum class of status field."""
 
-    pending = 'pending'
-    in_progress = 'in_progress'
-    completed = 'completed'
+    PENDING = 'pending'
+    IN_PROGRESS = 'in_progress'
+    COMPLETED = 'completed'
 
 
 class TaskContent(SQLModel, table=True):  # type: ignore[call-arg]
@@ -21,7 +22,7 @@ class TaskContent(SQLModel, table=True):  # type: ignore[call-arg]
     title: str = Field(nullable=True)
     description: str = Field(nullable=True)
     due_date: date = Field(default=None, nullable=True)
-    status: StatusEnum = Field(default=StatusEnum.pending)
+    status: StatusEnum = Field(default=StatusEnum.PENDING)
     is_deleted: bool = Field(default=False)  # For redo mechanism
     created_by: int = Field(nullable=True, default=None, foreign_key='user.id')
     created_at: datetime = Field(default=datetime.now())  # For redo mechanism

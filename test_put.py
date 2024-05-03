@@ -16,7 +16,7 @@ from sqlmodel import Session
 
 from app import DATABASE_URL
 from main import app
-from models import StatusEnum, TaskContent
+from models import CurrentTaskContent, StatusEnum, TaskContent
 from test_gadgets import (manual_create_task, prepare_users_for_test,
                           remove_all_tasks_and_users)
 
@@ -65,15 +65,22 @@ class TestPut(unittest.TestCase):
                 .order_by(desc(TaskContent.created_at))
                 .first()
             )
+            current_task_content = (
+                session.query(CurrentTaskContent)
+                .filter(CurrentTaskContent.identifier == last_task_content.identifier)
+                .first()
+            )
 
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {'message': 'Instance updated successfully!'}
         assert last_task_content.title == 'New updated title'
         assert last_task_content.description == 'New desc'
-        assert last_task_content.status == StatusEnum.completed
+        assert last_task_content.status == StatusEnum.COMPLETED
         assert last_task_content.due_date == datetime.date(2333, 12, 31)
         assert last_task_content.created_by == user_id
         assert last_task_content.created_at > first_task_content.created_at
+        assert current_task_content.created_by == 10
+        assert current_task_content.updated_by == user_id
 
     def test_wrong_due_date(self) -> None:
         """Test invalid date format."""

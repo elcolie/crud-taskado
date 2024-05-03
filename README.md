@@ -10,7 +10,12 @@
 3. `uvicorn main:app --reload`. To run the project.
 
 # Postman collection
-TODO
+[File here](TaskMgmt%20FastAPI.postman_collection.json)
+
+# Diagram.io
+![Diagram](dbdiagram.png)
+
+
 
 # ListView
 `filter` and `pagination`
@@ -20,13 +25,8 @@ get `/?due_dates__lte=2021-09-01&status=completed&created_by__username=foo&updat
 post = make new instance with new `identifier`
 put = make new instance with new `identifier`, but reuse the old `id`.
 delete = mark as deleted.
-post `/undo/<identifier>` = undelete the instance
-get `/{task_id}/history/` = get the history of the instance. Know first creator and last modified.
+post `/undo/<task_id>` = undelete the instance
 
-
-
-# pylintrc
-TODO
 
 # Test
 Rather than using POSTMAN click. I prefer run the script.

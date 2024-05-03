@@ -1,3 +1,4 @@
+"""Get the queryset of tasks."""
 import typing as typ
 from datetime import date
 
@@ -69,7 +70,7 @@ def get_queryset(
         # Find the latest identifier from available_id_list
         _identifier_list = (
             session.query(CurrentTaskContent.identifier)
-            .filter(CurrentTaskContent.id.in_(cleaned_id_list))  # type: ignore[attr-defined]
+            .filter(CurrentTaskContent.id.in_(cleaned_id_list))  # type: ignore[attr-defined]  # pylint: disable=no-member  # noqa: E501
             .all()
         )
         cleaned_identifier_list = [i[0] for i in _identifier_list]
@@ -85,17 +86,17 @@ def get_queryset(
                 and_(
                     CurrentTaskContent.id == TaskContent.id,
                     CurrentTaskContent.identifier == TaskContent.identifier,
-                    TaskContent.is_deleted == False,    # noqa: E712
+                    TaskContent.is_deleted == False,    # noqa: E712  # pylint: disable=singleton-comparison  # noqa: E501
                 ),
             )
             .outerjoin(
                 User,
-                or_(TaskContent.created_by == User.id, TaskContent.created_by is None),  # noqa: E501
+                or_(TaskContent.created_by == User.id, TaskContent.created_by is None),  # noqa: E501  # pylint: disable=line-too-long
             )
             .filter(
                 TaskContent.due_date == _due_date if _due_date else True,
-                TaskContent.status == _status if _status else True,
-                CurrentTaskContent.identifier.in_(cleaned_identifier_list),     # type: ignore[attr-defined]  # noqa: 501
+                TaskContent.status == _status if _status else True,  # pylint: disable=no-member
+                CurrentTaskContent.identifier.in_(cleaned_identifier_list),     # type: ignore[attr-defined]  # noqa: 501  # pylint: disable=line-too-long, no-member
             )
             .filter(
                 or_(
@@ -113,7 +114,7 @@ def get_queryset(
                     _updated_user is None,
                 )
             )
-            .order_by(TaskContent.id.asc())  # type: ignore[attr-defined]
+            .order_by(TaskContent.id.asc())  # type: ignore[attr-defined]  # pylint: disable=no-member  # noqa: E501
         )
         # Use lazy load when tasks is too much.
         # ).offset(offset).limit(_per_page)

@@ -5,6 +5,7 @@ repos:
     rev: v4.5.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^migrations/
       - id: end-of-file-fixer
       - id: check-json
       - id: check-toml
@@ -17,28 +18,41 @@ repos:
       - id: detect-private-key
       - id: double-quote-string-fixer
 
-#  - repo: https://github.com/psf/black
+  #  - repo: https://github.com/psf/black
 #    rev: 23.10.0
 #    hooks:
 #      - id: black
+
+  - repo: local
+    hooks:
+    - id: pylint
+      name: pylint
+      entry: /Users/sarit/.pyenv/versions/3.12.2/envs/try_fastapi/bin/pylint
+      exclude: ^migrations/
+      language: system
+      types: [python]
+      args: [--ignore-patterns=venv]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.15.0
     hooks:
       - id: pyupgrade
+        exclude: ^migrations/
         args: [ --py311-plus ]
 
   - repo: https://github.com/PyCQA/flake8
     rev: 6.1.0
     hooks:
       - id: flake8
+        exclude: ^migrations/
         args:
-          - --max-line-length=100
+          - --max-line-length=150
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
     hooks:
       - id: isort
+        exclude: ^migrations/
 
   - repo: https://github.com/PyCQA/autoflake
     rev: v2.3.1

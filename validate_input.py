@@ -16,8 +16,8 @@ def check_due_date_format(value: str) -> str:
         try:
             # Parse the due_date string to check if it's in the correct format.
             datetime.strptime(value, '%Y-%m-%d')
-        except ValueError:
-            raise ValueError("Invalid date format. Must be in 'YYYY-MM-DD' format.")
+        except ValueError as err:
+            raise ValueError("Invalid date format. Must be in 'YYYY-MM-DD' format.") from err
     return value
 
 
@@ -26,19 +26,24 @@ class GenericTaskInput(BaseModel):
 
     title: str | None
     description: str | None
-    status: StatusEnum = StatusEnum.pending
+    status: StatusEnum = StatusEnum.PENDING
     due_date: str | None = None
     created_by: int | None = None
 
     # created_at: datetime = Field(default_factory=datetime.today)
     # updated_at: datetime = Field(default_factory=datetime.today)
 
+    # https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.field_validator
     @field_validator('due_date')
+    @classmethod
     def check_due_date_format(cls, value: str) -> str:
+        """Check due date format and return string."""
         return check_due_date_format(value)
 
     @field_validator('created_by')
+    @classmethod
     def user_exists(cls, value: int) -> int | None:
+        """Check if the user exists in the database."""
         if value is not None and not cls.user_exists_in_db(value):
             # 422 status code raise in the BaseModel.
             raise ValueError('User with this id does not exist')
@@ -46,6 +51,7 @@ class GenericTaskInput(BaseModel):
 
     @classmethod
     def user_exists_in_db(cls, user_id: int) -> int | None:
+        """Short call to check with database."""
         # Implement the logic to check if the user exists in the database
         # This could be a database query or any other method to check user existence
         engine = create_engine(DATABASE_URL, echo=True)
@@ -60,6 +66,7 @@ class CheckTaskId(BaseModel):
     id: int
 
     @field_validator('id')
+    @classmethod
     def task_id_exists_in_db(cls, task_id: int) -> typ.Optional[int]:
         """Check if the task id exists in the database."""
         engine = create_engine(DATABASE_URL, echo=True)

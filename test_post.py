@@ -55,7 +55,7 @@ class TestPost(unittest.TestCase):
             ).one()
             assert task.title == 'Test Task with created_by'
             assert task.description == 'This is a test task'
-            assert task.status == StatusEnum.pending
+            assert task.status == StatusEnum.PENDING
             assert task.due_date == date(2022, 12, 31)
             assert task.created_by == 1
 

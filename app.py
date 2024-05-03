@@ -1,3 +1,4 @@
+"""Main for database connection."""
 from decouple import config
 from sqlmodel import create_engine
 
