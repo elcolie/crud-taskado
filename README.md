@@ -34,4 +34,4 @@ It mutates the database. Then be careful.
 
 You need to add `User` first start with `id=1`.
 
-`python -m unittest`. To run all test cases.
+`python -m unittest core/tests/*.py`. To run all test cases.

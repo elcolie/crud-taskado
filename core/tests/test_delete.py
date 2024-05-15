@@ -8,9 +8,9 @@ from sqlmodel import Session
 
 from app import DATABASE_URL
 from main import app
-from models import CurrentTaskContent, TaskContent
-from test_gadgets import (manual_create_task, prepare_users_for_test,
-                          remove_all_tasks_and_users)
+from core.models.models import CurrentTaskContent, TaskContent
+from core.tests.test_gadgets import (manual_create_task, prepare_users_for_test,
+                                remove_all_tasks_and_users)
 
 client = TestClient(app)
 engine = create_engine(DATABASE_URL, echo=True)

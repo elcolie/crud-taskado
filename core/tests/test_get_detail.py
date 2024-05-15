@@ -8,7 +8,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from main import app
-from test_gadgets import (manual_create_task, prepare_users_for_test,
+from core.tests.test_gadgets import (manual_create_task, prepare_users_for_test,
                           remove_all_tasks_and_users)
 
 client = TestClient(app)

@@ -1,14 +1,15 @@
 """pydantic models for validating input data."""
 import typing as typ
-from datetime import datetime
+from datetime import datetime, date
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ValidationError
 from sqlalchemy import create_engine, exists
 from sqlmodel import Session
 
 from app import DATABASE_URL
-from models import StatusEnum, TaskContent, User
+from core.models.models import StatusEnum, TaskContent, User
 
+engine = create_engine(DATABASE_URL, echo=True)
 
 def check_due_date_format(value: str) -> str:
     """Check due date format and return string."""
@@ -79,3 +80,78 @@ class CheckTaskId(BaseModel):
 
 class UpdateTask(CheckTaskId, GenericTaskInput):
     """Include id to the model by mixin."""
+
+
+class ErrorDetail(BaseModel):
+    """Error details model."""
+
+    loc: typ.List[str]
+    msg: str
+    type: str
+
+
+class TaskValidationError(BaseModel):
+    """Task validation error model."""
+
+    message: str
+    errors: typ.List[ErrorDetail]
+
+
+class TaskSuccessMessage(BaseModel):
+    """Task success message model."""
+    message: str
+
+
+class SummaryTask(BaseModel):
+    """Output summary task with created_by, and updated_by."""
+
+    id: int
+    title: str
+    description: str
+    due_date: date
+    status: str
+    created_by: int | None
+    updated_by: int | None
+    created_by__username: str | None
+    updated_by__username: str | None
+
+
+class ResponsePayload(BaseModel):
+    """Response payload model."""
+    count: int
+    tasks: typ.List[SummaryTask]
+    next: typ.Optional[str]
+    previous: typ.Optional[str]
+
+
+def parse_date(date_str: str) -> date:
+    """Function to parse date string."""
+    try:
+        year, month, day = date_str.split('-')
+        return date(int(year), int(month), int(day))
+    except ValueError as exc:
+        raise ValidationError("Invalid date format. Must be in 'YYYY-MM-DD' format.") from exc
+
+
+def validate_due_date(str_due_date: str) -> typ.Optional[date]:
+    """Validate the due date."""
+    correct_format = check_due_date_format(str_due_date)
+    year, month, day = correct_format.split('-')
+    return date(int(year), int(month), int(day))
+
+
+def validate_status(str_status: str) -> StatusEnum:
+    """Validate the status."""
+    for _status in StatusEnum:
+        if _status.value == str_status:
+            return _status
+    raise ValueError('StatusEnum is invalid status value.')
+
+
+def validate_username(str_username: str) -> User:
+    """Validate the username."""
+    with Session(engine) as session:
+        user = session.query(User).filter(User.username == str_username).first()
+        if user is None:
+            raise ValueError('User does not exist.')
+        return user

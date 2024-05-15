@@ -13,9 +13,9 @@ from sqlalchemy import create_engine
 from sqlmodel import Session, select
 
 from app import DATABASE_URL
+from core.tests.test_gadgets import prepare_users_for_test, remove_all_tasks_and_users
 from main import app
-from models import CurrentTaskContent, StatusEnum, TaskContent
-from test_gadgets import prepare_users_for_test, remove_all_tasks_and_users
+from core.models.models import CurrentTaskContent, StatusEnum, TaskContent
 
 # Create the database engine
 engine = create_engine(DATABASE_URL, echo=True)

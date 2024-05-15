@@ -10,9 +10,9 @@ from sqlalchemy import create_engine
 from sqlmodel import Session
 
 from app import DATABASE_URL
+from core.methods.get_list_method.pagination_gadgets import generate_query_params
 from main import app
-from pagination_gadgets import generate_query_params
-from test_gadgets import (manual_create_task, prepare_users_for_test,
+from core.tests.test_gadgets import (manual_create_task, prepare_users_for_test,
                           remove_all_tasks_and_users)
 
 client = TestClient(app)

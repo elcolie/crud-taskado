@@ -8,7 +8,7 @@ from sqlmodel import Session
 
 from app import DATABASE_URL
 from main import app
-from models import CurrentTaskContent, TaskContent, User
+from core.models.models import CurrentTaskContent, TaskContent, User
 
 client = TestClient(app)
 
