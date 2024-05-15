@@ -1,7 +1,7 @@
 """Try implement using OOP. This supposed to be a data layer."""
 import logging
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 import sqlalchemy
 from pydantic import ValidationError
@@ -10,7 +10,8 @@ from sqlmodel import Session
 from sqlmodel import create_engine
 
 from app import DATABASE_URL
-from core.common.validate_input import GenericTaskInput, TaskValidationError, ErrorDetail
+from core.common.validate_input import GenericTaskInput, TaskValidationError, ErrorDetail, UndoError, CheckTaskId, \
+    UpdateTask
 from core.common.validate_input import parse_date
 from core.methods.get_list_method.get_queryset import get_queryset
 from core.models.models import TaskContent, CurrentTaskContent, StatusEnum, User
@@ -157,6 +158,118 @@ class DetailTask:
             )
         return task
 
+class UndoTask:
+    """Mixin class for undoing."""
+    def undo_task(self, task_instance: CheckTaskId) -> None:
+        """Undo a task."""
+        with Session(engine) as session:
+            # Get the last revision of the task
+            task = (
+                session.query(TaskContent)
+                .filter(TaskContent.id == task_instance.id)
+                .order_by(TaskContent.created_at.desc())  # type: ignore[attr-defined]  # pylint: disable=no-member
+                .first()
+            )
 
-class TaskRepository(DetailTask, ListTask, DeleteTask, CreateTask):
+            current_task_instance = (
+                session.query(CurrentTaskContent)
+                .filter(CurrentTaskContent.id == task.id)
+                .first()
+            )
+
+            # Undo the PUT operation
+            if current_task_instance is not None:
+                # Remove the latest of tast_content
+                last_task_instance = (
+                    session.query(TaskContent)
+                    .filter(TaskContent.id == task.id)
+                    .order_by(desc(TaskContent.created_at))
+                    .first()
+                )
+
+                session.delete(last_task_instance)
+                session.commit()
+
+                new_last_task_instance = (
+                    session.query(TaskContent)
+                    .filter(TaskContent.id == task.id)
+                    .order_by(desc(TaskContent.created_at))
+                    .first()
+                )
+
+                if new_last_task_instance is None:
+                    # It means task is created and immediately run undo.
+                    raise UndoError('Task is created and immediately run undo.')
+                # Change the identifier on current_task_instance
+                current_task_instance.identifier = new_last_task_instance.identifier
+
+            else:
+                # Undo the DELETE operation
+                # Get the current task instance
+                current_task_instance = CurrentTaskContent(
+                    **{
+                        'identifier': task.identifier,
+                        'id': task.id,
+                        'created_by': task.created_by,
+                        'updated_by': task.created_by,
+                        'created_at': task.created_at,
+                        'updated_at': datetime.now(),
+                    }
+                )
+
+            # Mark the history as `is_deleted`
+            task.is_deleted = False
+
+            # Save the current task table.
+            session.add(current_task_instance)
+            session.commit()
+
+class ModifyTask:
+    """Mixin class for updating a task."""
+
+    def update(self, task_content_instance: UpdateTask, payload: UpdateTask) -> None:
+        with Session(engine) as session:
+            task = (
+                session.query(TaskContent).filter(TaskContent.id == payload.id).first()
+            )
+
+            # In order to do undo mechanism. Create a new instance of the task.
+            new_identifier = uuid.uuid4().hex
+
+            # Create new revision.
+            new_content = TaskContent(
+                **{
+                    'id': task.id,  # Use existing id
+                    'identifier': new_identifier,
+                    'title': task_content_instance.title,  # Update the rest of the payload.
+                    'description': task_content_instance.description,
+                    'due_date': parse_date(
+                        task_content_instance.due_date
+                    ) if task_content_instance.due_date else None,
+                    'status': task_content_instance.status,
+                    'created_by': task_content_instance.created_by,
+                    'created_at': datetime.now(),
+                }
+            )
+
+            # Update the timestamp on this task instance.
+            current_task_instance = (
+                session.query(CurrentTaskContent)
+                .filter(CurrentTaskContent.id == payload.id)
+                .first()
+            )
+            current_task_instance.identifier = new_identifier
+            current_task_instance.updated_by = new_content.created_by
+            current_task_instance.updated_at = new_content.created_at
+
+            session.add(new_content)
+            session.add(current_task_instance)
+            session.commit()
+
+class TaskRepository(ModifyTask,
+                     UndoTask,
+                     DetailTask,
+                     ListTask,
+                     DeleteTask,
+                     CreateTask):
     """Task business logic."""

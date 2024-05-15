@@ -90,6 +90,11 @@ class ErrorDetail(BaseModel):
     type: str
 
 
+class UndoError(Exception):
+    """Error details model."""
+    message: str
+
+
 class TaskValidationError(BaseModel):
     """Task validation error model."""
 

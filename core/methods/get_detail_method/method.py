@@ -2,14 +2,13 @@ import logging
 
 from fastapi import HTTPException
 from fastapi import status
-from sqlmodel import Session
 from sqlmodel import create_engine
 
 from app import DATABASE_URL
 from core.common.serializers import TaskContentSchema
 from core.common.validate_input import UpdateTask
 from core.methods.crud import TaskRepository
-from core.models.models import CurrentTaskContent, TaskContent, StatusEnum
+from core.models.models import CurrentTaskContent, StatusEnum
 
 logger = logging.getLogger(__name__)
 engine = create_engine(DATABASE_URL, echo=True)

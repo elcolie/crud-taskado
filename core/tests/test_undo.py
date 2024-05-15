@@ -81,8 +81,9 @@ class UndoMech(unittest.TestCase):
         task_id = manual_create_task()
         # Apply undo mechanism
         undo_response = client.post(f"/undo/{task_id}")
-        assert undo_response.status_code == status.HTTP_425_TOO_EARLY
-        assert undo_response.json() == {'detail': 'Unable to undo new created task.'}
+        assert undo_response.status_code == status.HTTP_400_BAD_REQUEST
+        assert undo_response.json() == {'detail': 'Task is created and immediately run undo.'}
+
 
     def test_undo_update(self) -> None:
         """Test happy path for updating a task."""
