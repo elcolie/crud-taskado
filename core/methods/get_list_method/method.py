@@ -6,6 +6,7 @@ from datetime import date
 from fastapi import status, Response
 
 from core.common.serializers import ListTaskSchemaOutput, get_user
+from core.methods.crud import TaskRepository
 from core.methods.get_list_method.get_queryset import get_queryset
 from core.methods.get_list_method.pagination_gadgets import generate_query_params
 from core.models.models import StatusEnum, User
@@ -62,11 +63,9 @@ def list_tasks(  # pylint: disable=too-many-locals
         response.status_code = status.HTTP_406_NOT_ACCEPTABLE
         return {'message': errors}
 
-    tasks_results = get_queryset(
-        _due_date=due_date_instance,
-        _status=status_instance,
-        _created_user=user_instance,
-        _updated_user=updated_user_instance,
+    task_repository = TaskRepository()
+    tasks_results = task_repository.list_tasks(
+        due_date_instance, status_instance, user_instance, updated_user_instance
     )
     list_task_schema_output = ListTaskSchemaOutput()
 

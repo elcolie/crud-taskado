@@ -1,7 +1,9 @@
 """Try implement using OOP. This supposed to be a data layer."""
 import logging
 import uuid
+from datetime import date
 
+import sqlalchemy
 from pydantic import ValidationError
 from sqlalchemy import func, desc
 from sqlmodel import Session
@@ -10,7 +12,8 @@ from sqlmodel import create_engine
 from app import DATABASE_URL
 from core.common.validate_input import GenericTaskInput, TaskValidationError, ErrorDetail
 from core.common.validate_input import parse_date
-from core.models.models import TaskContent, CurrentTaskContent
+from core.methods.get_list_method.get_queryset import get_queryset
+from core.models.models import TaskContent, CurrentTaskContent, StatusEnum, User
 
 logger = logging.getLogger(__name__)
 engine = create_engine(DATABASE_URL, echo=True)
@@ -89,6 +92,7 @@ class CreateTask:
         validated_input_task = self.validate_input_task(task_input)
         self._create_task(validated_input_task)
 
+
 class DeleteTask:
     """Mixin class for deleting a task."""
 
@@ -118,7 +122,26 @@ class DeleteTask:
         self._delete_task(task_instance)
 
 
-class TaskRepository(DeleteTask, CreateTask):
+class ListTask:
+    """Mixin class for listing tasks."""
+
+    def list_tasks(
+        self,
+        due_date_instance: date,
+        status_instance: StatusEnum,
+        user_instance: User,
+        updated_user_instance: User
+    ) -> sqlalchemy.orm.query.Query:
+        tasks_results = get_queryset(
+            _due_date=due_date_instance,
+            _status=status_instance,
+            _created_user=user_instance,
+            _updated_user=updated_user_instance,
+        )
+        return tasks_results
+
+
+class TaskRepository(ListTask, DeleteTask, CreateTask):
     """Task business logic."""
 
     def get_current_task(self):
