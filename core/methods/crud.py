@@ -3,7 +3,7 @@ import logging
 import uuid
 
 from pydantic import ValidationError
-from sqlalchemy import func
+from sqlalchemy import func, desc
 from sqlmodel import Session
 from sqlmodel import create_engine
 
@@ -89,8 +89,36 @@ class CreateTask:
         validated_input_task = self.validate_input_task(task_input)
         self._create_task(validated_input_task)
 
+class DeleteTask:
+    """Mixin class for deleting a task."""
 
-class TaskRepository(CreateTask):
+    @staticmethod
+    def _delete_task(task_instance: CurrentTaskContent) -> None:
+        """Delete a task."""
+        with Session(engine) as session:
+            # Delete the instance from the current_task table
+            current_task_instance = (
+                session.query(CurrentTaskContent)
+                .filter(CurrentTaskContent.id == task_instance.id)
+                .first()
+            )
+
+            # Mark the history as `is_deleted`
+            task = (
+                session.query(TaskContent)
+                .filter(TaskContent.id == task_instance.id)
+                .order_by(desc(TaskContent.created_at))
+                .first()
+            )
+            task.is_deleted = True
+            session.delete(current_task_instance)
+            session.commit()
+
+    def delete_task(self, task_instance: CurrentTaskContent):
+        self._delete_task(task_instance)
+
+
+class TaskRepository(DeleteTask, CreateTask):
     """Task business logic."""
 
     def get_current_task(self):
