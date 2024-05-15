@@ -141,11 +141,22 @@ class ListTask:
         return tasks_results
 
 
-class TaskRepository(ListTask, DeleteTask, CreateTask):
+class DetailTask:
+    """Mixin class for getting task."""
+
+    def get_task_by_id(self, current_task: CurrentTaskContent) -> TaskContent:
+        with Session(engine) as session:
+            task = (
+                session.query(TaskContent)
+                .filter(
+                    TaskContent.id == current_task.id,
+                    TaskContent.identifier == current_task.identifier,
+                    TaskContent.is_deleted == False,  # noqa E712  # pylint: disable=singleton-comparison
+                )
+                .one()
+            )
+        return task
+
+
+class TaskRepository(DetailTask, ListTask, DeleteTask, CreateTask):
     """Task business logic."""
-
-    def get_current_task(self):
-        pass
-
-    def get_task_content(self):
-        pass
