@@ -7,7 +7,6 @@ from fastapi import status, Response
 
 from core.common.serializers import ListTaskSchemaOutput, get_user
 from core.methods.crud import TaskRepository
-from core.methods.get_list_method.get_queryset import get_queryset
 from core.methods.get_list_method.pagination_gadgets import generate_query_params
 from core.models.models import StatusEnum, User
 from core.common.validate_input import ResponsePayload, ErrorDetail, validate_due_date, validate_status, validate_username, \
