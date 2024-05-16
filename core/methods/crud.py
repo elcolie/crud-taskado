@@ -5,16 +5,16 @@ from datetime import date, datetime
 
 import sqlalchemy
 from pydantic import ValidationError
-from sqlalchemy import func, desc
-from sqlmodel import Session
-from sqlmodel import create_engine
+from sqlalchemy import desc, func
+from sqlmodel import Session, create_engine
 
 from app import DATABASE_URL
-from core.common.validate_input import GenericTaskInput, TaskValidationError, ErrorDetail, UndoError, CheckTaskId, \
-    UpdateTask
-from core.common.validate_input import parse_date
+from core.common.validate_input import (CheckTaskId, ErrorDetail,
+                                        GenericTaskInput, TaskValidationError,
+                                        UndoError, UpdateTask, parse_date)
 from core.methods.get_list_method.get_queryset import get_queryset
-from core.models.models import TaskContent, CurrentTaskContent, StatusEnum, User
+from core.models.models import (CurrentTaskContent, StatusEnum, TaskContent,
+                                User)
 
 logger = logging.getLogger(__name__)
 engine = create_engine(DATABASE_URL, echo=True)

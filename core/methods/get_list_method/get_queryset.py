@@ -7,7 +7,8 @@ from sqlalchemy import and_, create_engine, or_
 from sqlmodel import Session
 
 from app import DATABASE_URL
-from core.models.models import CurrentTaskContent, StatusEnum, TaskContent, User
+from core.models.models import (CurrentTaskContent, StatusEnum, TaskContent,
+                                User)
 
 engine = create_engine(DATABASE_URL, echo=True)
 

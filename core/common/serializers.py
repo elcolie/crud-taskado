@@ -7,7 +7,6 @@ from sqlmodel import Session
 from app import DATABASE_URL
 from core.models.models import StatusEnum, TaskContent, User
 
-
 # Use this because marshmellow can exclude identifier field. But for clarity.
 # I intentionally not use `exclude` to be explicit.
 

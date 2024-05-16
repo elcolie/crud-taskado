@@ -2,13 +2,12 @@ import logging
 import typing as typ
 from datetime import date
 
-from fastapi import Query
-from fastapi import status, HTTPException
+from fastapi import HTTPException, Query, status
 
 from core.common.serializers import ListTaskSchemaOutput, get_user
-from core.common.validate_input import ErrorDetail, validate_due_date, validate_status, \
-    validate_username, \
-    SummaryTask
+from core.common.validate_input import (ErrorDetail, SummaryTask,
+                                        validate_due_date, validate_status,
+                                        validate_username)
 from core.methods.crud import TaskRepository
 from core.models.models import StatusEnum, User
 

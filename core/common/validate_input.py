@@ -1,8 +1,8 @@
 """pydantic models for validating input data."""
 import typing as typ
-from datetime import datetime, date
+from datetime import date, datetime
 
-from pydantic import BaseModel, field_validator, ValidationError
+from pydantic import BaseModel, ValidationError, field_validator
 from sqlalchemy import create_engine, exists
 from sqlmodel import Session
 

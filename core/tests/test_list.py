@@ -10,10 +10,12 @@ from sqlalchemy import create_engine
 from sqlmodel import Session
 
 from app import DATABASE_URL
-from core.methods.get_list_method.pagination_gadgets import generate_query_params
-from main import app
-from core.tests.test_gadgets import (manual_create_task, prepare_users_for_test,
+from core.methods.get_list_method.pagination_gadgets import \
+    generate_query_params
+from core.tests.test_gadgets import (manual_create_task,
+                                     prepare_users_for_test,
                                      remove_all_tasks_and_users)
+from main import app
 
 client = TestClient(app)
 

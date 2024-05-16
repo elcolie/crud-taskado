@@ -2,11 +2,9 @@
 import logging
 
 import sqlalchemy
-from fastapi import HTTPException
-from fastapi import status
+from fastapi import HTTPException, status
 from pydantic import ValidationError
-from sqlmodel import Session
-from sqlmodel import create_engine
+from sqlmodel import Session, create_engine
 
 from app import DATABASE_URL
 from core.common.validate_input import CheckTaskId

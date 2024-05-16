@@ -2,9 +2,7 @@
 import logging
 import typing as typ
 
-from fastapi import Depends
-from fastapi import FastAPI
-from fastapi import status
+from fastapi import Depends, FastAPI, status
 # import all you need from fastapi-pagination
 from fastapi_pagination import Page, add_pagination, paginate
 from sqlalchemy import create_engine
@@ -12,11 +10,13 @@ from sqlalchemy import create_engine
 # Database connection url
 from app import DATABASE_URL
 from core.common.get_instance import valid_task, valid_undo_task
-from core.common.validate_input import GenericTaskInput, TaskSuccessMessage, TaskValidationError, UpdateTask, \
-    CheckTaskId, SummaryTask
+from core.common.validate_input import (CheckTaskId, GenericTaskInput,
+                                        SummaryTask, TaskSuccessMessage,
+                                        TaskValidationError, UpdateTask)
 from core.methods.delete_method.method import delete_task
 from core.methods.get_detail_method.method import get_task
-from core.methods.get_list_method.method import list_tasks, CommonTaskQueryParams, validate_task_common_query_param
+from core.methods.get_list_method.method import (
+    CommonTaskQueryParams, list_tasks, validate_task_common_query_param)
 from core.methods.post_method.method import create_task
 from core.methods.undo_method.method import undo_task
 from core.methods.update_method.method import update_task

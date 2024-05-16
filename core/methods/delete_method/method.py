@@ -1,3 +1,4 @@
+"""DELETE method to delete a task."""
 import logging
 import typing as typ
 

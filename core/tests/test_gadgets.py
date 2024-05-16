@@ -7,8 +7,8 @@ from sqlalchemy import create_engine, desc
 from sqlmodel import Session
 
 from app import DATABASE_URL
-from main import app
 from core.models.models import CurrentTaskContent, TaskContent, User
+from main import app
 
 client = TestClient(app)
 

@@ -1,7 +1,6 @@
 import logging
 
-from fastapi import HTTPException
-from fastapi import status
+from fastapi import HTTPException, status
 from sqlmodel import create_engine
 
 from app import DATABASE_URL
