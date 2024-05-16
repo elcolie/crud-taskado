@@ -162,7 +162,7 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         list_response = client.get('/')
 
         assert list_response.status_code == status.HTTP_200_OK
-        assert 3 == list_response.json()['count']
+        assert 3 == list_response.json()['total']
         assert second_task_response.status_code == status.HTTP_200_OK
         assert second_task_final_response.status_code == status.HTTP_200_OK
         assert deleted_response.status_code == status.HTTP_200_OK
@@ -175,14 +175,14 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         self.before_test()
         response = client.get('/?due_date=2022-12-31')
         assert response.status_code == status.HTTP_200_OK
-        assert 5 == response.json()['count']
+        assert 5 == response.json()['total']
 
     def test_filter_due_date_and_not_found(self) -> None:
         """Filter by exact due_date."""
         self.before_test()
         response = client.get('/?due_date=2022-12-3')
         assert response.status_code == status.HTTP_200_OK
-        assert 0 == response.json()['count']
+        assert 0 == response.json()['total']
 
     def test_filter_due_date_non_numeric_string(self) -> None:
         """Filter with non-numeric string."""
@@ -204,35 +204,35 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         self.before_test()
         response = client.get('/?task_status=pending')
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['count'] == 5
+        assert response.json()['total'] == 5
 
     def test_filter_status_and_not_found(self) -> None:
         """Filter by status."""
         self.before_test()
         response = client.get('/?task_status=completed')
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['count'] == 0
+        assert response.json()['total'] == 0
 
     def test_filter_due_date_and_status_and_found(self) -> None:
         """Filter by status."""
         self.before_test()
         response = client.get('/?due_date=2022-12-31&task_status=pending')
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['count'] == 5
+        assert response.json()['total'] == 5
 
     def test_filter_due_date_and_status_and_not_found(self) -> None:
         """Filter by status."""
         self.before_test()
         response = client.get('/?due_date=2022-12-31&task_status=completed')
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['count'] == 0
+        assert response.json()['total'] == 0
 
     def test_filter_created_by_username(self) -> None:
         """Found task based on given username."""
         self.before_test()
         response = client.get('/?created_by__username=test_user')
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['count'] == 4
+        assert response.json()['total'] == 4
 
     def test_filter_created_by_username_not_found(self) -> None:
         """Not found task based on given username."""
@@ -250,7 +250,7 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
             '/?due_date=2022-12-31&task_status=pending&created_by__username=test_user'
         )
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['count'] == 4
+        assert response.json()['total'] == 4
 
     def test_filter_due_date_and_status_and_wrong_username(self) -> None:
         """Filter by created_by."""
@@ -260,26 +260,21 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
             '/?due_date=2022-12-31&task_status=pending&created_by__username=elcolie'
         )
         assert response.status_code == status.HTTP_200_OK
-        assert response.json() == {
-            'count': 0,
-            'tasks': [],
-            'next': None,
-            'previous': None,
-        }
+        assert response.json() == {'items': [], 'total': 0, 'page': 1, 'size': 50, 'pages': 0}
 
     def test_filter_created_by_username_and_due_date(self) -> None:
         """Filter by created_by."""
         self.before_test()
         response = client.get('/?created_by__username=test_user&due_date=2022-12-31')
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['count'] == 4
+        assert response.json()['total'] == 4
 
     def test_filter_created_by_wrong_username_and_valid_due_date(self) -> None:
         """Filter by created_by."""
         self.before_test()
         response = client.get('/?created_by__username=elcolie&due_date=2022-12-31')
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['count'] == 0
+        assert response.json()['total'] == 0
 
     def test_filter_valid_created_by_and_valid_updated_by(self) -> None:
         """Filter by created_by, and updated_by username."""
@@ -293,8 +288,7 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
 
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
-            'count': 1,
-            'tasks': [
+            'items': [
                 {
                     'id': 1,
                     'title': 'Test update the title',
@@ -302,14 +296,15 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
                     'due_date': '2023-12-31',
                     'status': 'StatusEnum.COMPLETED',
                     'created_by': 10,
-                    'created_by__username': 'test_user',
                     'updated_by': 1,
-                    'updated_by__username': 'sarit',
+                    'created_by__username': 'test_user',
+                    'updated_by__username': 'sarit'
                 }
             ],
-            'next': None,
-            'previous': None,
-        }
+            'total': 1,
+            'page': 1,
+            'size': 50,
+            'pages': 1}
 
     def test_filter_created_by(self) -> None:
         """Filter by created_by username."""
@@ -318,56 +313,48 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         assert update_response.status_code == status.HTTP_200_OK
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
-            'count': 4,
-            'tasks': [
-                {
-                    'id': 1,
-                    'title': 'Test update the title',
-                    'description': 'Test update description',
-                    'due_date': '2023-12-31',
-                    'status': 'StatusEnum.COMPLETED',
-                    'created_by': 10,
-                    'created_by__username': 'test_user',
-                    'updated_by': 1,
-                    'updated_by__username': 'sarit',
-                },
-                {
-                    'id': 2,
-                    'title': 'Test Task with created_by',
-                    'description': 'This is a test task',
-                    'due_date': '2022-12-31',
-                    'status': 'StatusEnum.PENDING',
-                    'created_by': 10,
-                    'created_by__username': 'test_user',
-                    'updated_by': 10,
-                    'updated_by__username': 'test_user',
-                },
-                {
-                    'id': 3,
-                    'title': 'Test Task with created_by',
-                    'description': 'This is a test task',
-                    'due_date': '2022-12-31',
-                    'status': 'StatusEnum.PENDING',
-                    'created_by': 10,
-                    'created_by__username': 'test_user',
-                    'updated_by': 10,
-                    'updated_by__username': 'test_user',
-                },
-                {
-                    'id': 4,
-                    'title': 'Test Task with created_by',
-                    'description': 'This is a test task',
-                    'due_date': '2022-12-31',
-                    'status': 'StatusEnum.PENDING',
-                    'created_by': 10,
-                    'created_by__username': 'test_user',
-                    'updated_by': 10,
-                    'updated_by__username': 'test_user',
-                },
+            'items': [
+                {'id': 1,
+                 'title': 'Test update the title',
+                 'description': 'Test update description',
+                 'due_date': '2023-12-31',
+                 'status': 'StatusEnum.COMPLETED',
+                 'created_by': 10,
+                 'updated_by': 1,
+                 'created_by__username': 'test_user',
+                 'updated_by__username': 'sarit'},
+                {'id': 2,
+                 'title': 'Test Task with created_by',
+                 'description': 'This is a test task',
+                 'due_date': '2022-12-31',
+                 'status': 'StatusEnum.PENDING',
+                 'created_by': 10,
+                 'updated_by': 10,
+                 'created_by__username': 'test_user',
+                 'updated_by__username': 'test_user'},
+                {'id': 3,
+                 'title': 'Test Task with created_by',
+                 'description': 'This is a test task',
+                 'due_date': '2022-12-31',
+                 'status': 'StatusEnum.PENDING',
+                 'created_by': 10,
+                 'updated_by': 10,
+                 'created_by__username': 'test_user',
+                 'updated_by__username': 'test_user'},
+                {'id': 4,
+                 'title': 'Test Task with created_by',
+                 'description': 'This is a test task',
+                 'due_date': '2022-12-31',
+                 'status': 'StatusEnum.PENDING',
+                 'created_by': 10,
+                 'updated_by': 10,
+                 'created_by__username': 'test_user',
+                 'updated_by__username': 'test_user'}
             ],
-            'next': None,
-            'previous': None,
-        }
+            'total': 4,
+            'page': 1,
+            'size': 50,
+            'pages': 1}
 
     def test_filter_updated_by(self) -> None:
         """Filter by updated_by username."""
@@ -376,63 +363,54 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         sarit_response = client.get('/?updated_by__username=sarit')
         assert update_response.status_code == status.HTTP_200_OK
         assert test_user_response.json() == {
-            'count': 3,
-            'tasks': [
-                {
-                    'id': 2,
-                    'title': 'Test Task with created_by',
-                    'description': 'This is a test task',
-                    'due_date': '2022-12-31',
-                    'status': 'StatusEnum.PENDING',
-                    'created_by': 10,
-                    'created_by__username': 'test_user',
-                    'updated_by': 10,
-                    'updated_by__username': 'test_user',
-                },
-                {
-                    'id': 3,
-                    'title': 'Test Task with created_by',
-                    'description': 'This is a test task',
-                    'due_date': '2022-12-31',
-                    'status': 'StatusEnum.PENDING',
-                    'created_by': 10,
-                    'created_by__username': 'test_user',
-                    'updated_by': 10,
-                    'updated_by__username': 'test_user',
-                },
-                {
-                    'id': 4,
-                    'title': 'Test Task with created_by',
-                    'description': 'This is a test task',
-                    'due_date': '2022-12-31',
-                    'status': 'StatusEnum.PENDING',
-                    'created_by': 10,
-                    'created_by__username': 'test_user',
-                    'updated_by': 10,
-                    'updated_by__username': 'test_user',
-                },
-            ],
-            'next': None,
-            'previous': None,
-        }
+            'items': [
+                {'id': 2,
+                 'title': 'Test Task with created_by',
+                 'description': 'This is a test task',
+                 'due_date': '2022-12-31',
+                 'status': 'StatusEnum.PENDING',
+                 'created_by': 10,
+                 'updated_by': 10,
+                 'created_by__username': 'test_user',
+                 'updated_by__username': 'test_user'},
+                {'id': 3,
+                 'title': 'Test Task with created_by',
+                 'description': 'This is a test task',
+                 'due_date': '2022-12-31',
+                 'status': 'StatusEnum.PENDING',
+                 'created_by': 10,
+                 'updated_by': 10,
+                 'created_by__username': 'test_user',
+                 'updated_by__username': 'test_user'},
+                {'id': 4,
+                 'title': 'Test Task with created_by',
+                 'description': 'This is a test task',
+                 'due_date': '2022-12-31',
+                 'status': 'StatusEnum.PENDING',
+                 'created_by': 10,
+                 'updated_by': 10,
+                 'created_by__username': 'test_user',
+                 'updated_by__username': 'test_user'}],
+            'total': 3,
+            'page': 1,
+            'size': 50,
+            'pages': 1}
         assert sarit_response.json() == {
-            'count': 1,
-            'tasks': [
-                {
-                    'id': 1,
-                    'title': 'Test update the title',
-                    'description': 'Test update description',
-                    'due_date': '2023-12-31',
-                    'status': 'StatusEnum.COMPLETED',
-                    'created_by': 10,
-                    'created_by__username': 'test_user',
-                    'updated_by': 1,
-                    'updated_by__username': 'sarit',
-                }
+            'items': [
+                {'id': 1,
+                 'title': 'Test update the title',
+                 'description': 'Test update description',
+                 'due_date': '2023-12-31',
+                 'status': 'StatusEnum.COMPLETED',
+                 'created_by': 10,
+                 'updated_by': 1,
+                 'created_by__username': 'test_user',
+                 'updated_by__username': 'sarit'}
             ],
-            'next': None,
-            'previous': None,
-        }
+            'total': 1,
+            'page': 1,
+            'size': 50,
+            'pages': 1}
 
     def test_filter_wrong_created_by_and_valid_updated_by(self) -> None:
         """Filter by created_by, and updated_by username."""
@@ -460,36 +438,38 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
     def test_pagination(self) -> None:
         """Test pagination expect 10 tasks per page."""
         self._make_35_tasks()
-        second_page_size_by_five = client.get('/?_page_number=2&_per_page=5')
-        first_page_size_by_seven = client.get('/?_page_number=1&_per_page=7')
-        last_page_size_by_seven = client.get('/?_page_number=5&_per_page=7')
+        first_page_size_by_five = client.get('/?page=1&size=5')
+        second_page_size_by_five = client.get('/?page=2&size=5')
+        first_page_size_by_seven = client.get('/?page=1&size=7')
+        last_page_size_by_seven = client.get('/?page=5&size=7')
+
+        first_page_size_by_five_id_list = [
+            task['id'] for task in first_page_size_by_five.json()['items']
+        ]
+        first_page_size_by_five_id_list.sort()
 
         # Check 2nd page, size by 5
         second_page_id_list = [
-            task['id'] for task in second_page_size_by_five.json()['tasks']
+            task['id'] for task in second_page_size_by_five.json()['items']
         ]
         second_page_id_list.sort()
-        assert [6, 7, 8, 9, 10] == second_page_id_list
-        assert second_page_size_by_five.json()['next'] is not None
-        assert second_page_size_by_five.json()['previous'] is not None
 
         # Check 1st page, size by 7
         first_page_id_list = [
-            task['id'] for task in first_page_size_by_seven.json()['tasks']
+            task['id'] for task in first_page_size_by_seven.json()['items']
         ]
         first_page_id_list.sort()
-        assert [1, 2, 3, 4, 5, 6, 7] == first_page_id_list
-        assert first_page_size_by_seven.json()['next'] is not None
-        assert first_page_size_by_seven.json()['previous'] is None
 
         # Check 5th page(aka last page), size by 7
         last_page_id_list = [
-            task['id'] for task in last_page_size_by_seven.json()['tasks']
+            task['id'] for task in last_page_size_by_seven.json()['items']
         ]
         last_page_id_list.sort()
+
+        assert [1, 2, 3, 4, 5] == first_page_size_by_five_id_list
+        assert [6, 7, 8, 9, 10] == second_page_id_list
+        assert [1, 2, 3, 4, 5, 6, 7] == first_page_id_list
         assert [29, 30, 31, 32, 33, 34, 35] == last_page_id_list
-        assert last_page_size_by_seven.json()['next'] is None
-        assert last_page_size_by_seven.json()['previous'] is not None
 
     def test_filter_and_pagination(self) -> None:
         """Filter + pagination."""
@@ -508,8 +488,7 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         assert post_response.status_code == status.HTTP_201_CREATED
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
-            'count': 1,
-            'tasks': [
+            'items': [
                 {
                     'id': 36,
                     'title': 'Distinguish from the rest',
@@ -517,13 +496,15 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
                     'due_date': '3000-12-31',
                     'status': 'StatusEnum.IN_PROGRESS',
                     'created_by': 10,
-                    'created_by__username': 'test_user',
                     'updated_by': 10,
-                    'updated_by__username': 'test_user',
+                    'created_by__username': 'test_user',
+                    'updated_by__username': 'test_user'
                 }
             ],
-            'next': None,
-            'previous': None,
+            'total': 1,
+            'page': 1,
+            'size': 50,
+            'pages': 1
         }
 
     def test_generate_query_params(self) -> None:

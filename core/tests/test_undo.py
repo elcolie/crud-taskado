@@ -60,8 +60,7 @@ class UndoMech(unittest.TestCase):
         assert undo_response.json() == {'message': 'Instance restored successfully!'}
         assert get_response.status_code == status.HTTP_200_OK
         assert get_response.json() == {
-            'count': 1,
-            'tasks': [
+            'items': [
                 {
                     'id': 1,
                     'title': 'This is first created task',
@@ -69,14 +68,15 @@ class UndoMech(unittest.TestCase):
                     'due_date': '1995-12-31',
                     'status': 'StatusEnum.COMPLETED',
                     'created_by': 10,
-                    'created_by__username': 'test_user',
                     'updated_by': 10,
-                    'updated_by__username': 'test_user',
+                    'created_by__username': 'test_user',
+                    'updated_by__username': 'test_user'
                 }
             ],
-            'next': None,
-            'previous': None,
-        }
+            'total': 1,
+            'page': 1,
+            'size': 50,
+            'pages': 1}
 
     def test_create_task_then_undo(self) -> None:
         """Create task then undo."""

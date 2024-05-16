@@ -19,10 +19,25 @@ class CommonTaskQueryParams:
     """Common task query params in one place."""
     def __init__(
         self,
-        due_date: str | date | None,
-        task_status: str | StatusEnum | None,
-        created_by__username: str | User | None,
-        updated_by__username: str | User | None,
+        due_date: str | None,
+        task_status: str | None,
+        created_by__username: str | None,
+        updated_by__username: str | None,
+    ):
+        self.due_date = due_date
+        self.task_status = task_status
+        self.created_by__username = created_by__username
+        self.updated_by__username = updated_by__username
+
+
+class ConcreteCommonTaskQueryParams:
+    """Concrete common task query params. It is filled with instances."""
+    def __init__(
+        self,
+        due_date: date | None,
+        task_status: StatusEnum | None,
+        created_by__username: User | None,
+        updated_by__username: User | None,
     ):
         self.due_date = due_date
         self.task_status = task_status
@@ -35,7 +50,7 @@ def validate_task_common_query_param(
     task_status: str = Query(None),
     created_by__username: str = Query(None),
     updated_by__username: str = Query(None),
-) -> CommonTaskQueryParams:
+) -> ConcreteCommonTaskQueryParams:
     """Validate the task common query params."""
     errors: typ.List[ErrorDetail] = []
     due_date_instance: typ.Optional[date] = None
@@ -75,7 +90,7 @@ def validate_task_common_query_param(
             status_code=status.HTTP_406_NOT_ACCEPTABLE,
             detail=[err.__dict__ for err in errors]
         )
-    return CommonTaskQueryParams(
+    return ConcreteCommonTaskQueryParams(
         due_date=due_date_instance,
         task_status=status_instance,
         created_by__username=user_instance,

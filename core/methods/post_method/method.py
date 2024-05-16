@@ -1,6 +1,5 @@
 """POST method to create task."""
 import logging
-import typing as typ
 
 from fastapi import HTTPException, status
 from pydantic import ValidationError
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 engine = create_engine(DATABASE_URL, echo=True)
 
 
-def create_task(task_input: GenericTaskInput) -> typ.Union[TaskSuccessMessage,]:
+def create_task(task_input: GenericTaskInput) -> TaskSuccessMessage:
     """Endpoint to create a task."""
     # Instantiate the logic class
     task_repository = TaskRepository()
