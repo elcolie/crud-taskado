@@ -1,3 +1,4 @@
+"""GET detail of task."""
 import logging
 
 from fastapi import HTTPException, status

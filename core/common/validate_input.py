@@ -11,6 +11,7 @@ from core.models.models import StatusEnum, TaskContent, User
 
 engine = create_engine(DATABASE_URL, echo=True)
 
+
 def check_due_date_format(value: str) -> str:
     """Check due date format and return string."""
     if value is not None:
@@ -55,9 +56,7 @@ class GenericTaskInput(BaseModel):
         """Short call to check with database."""
         # Implement the logic to check if the user exists in the database
         # This could be a database query or any other method to check user existence
-        engine = create_engine(DATABASE_URL, echo=True)
         session = Session(engine)
-
         return session.scalar(exists().where(User.id == user_id).select())
 
 
@@ -70,7 +69,6 @@ class CheckTaskId(BaseModel):
     @classmethod
     def task_id_exists_in_db(cls, task_id: int) -> typ.Optional[int]:
         """Check if the task id exists in the database."""
-        engine = create_engine(DATABASE_URL, echo=True)
         session = Session(engine)
         is_exists = session.scalar(exists().where(TaskContent.id == task_id).select())
         if not is_exists:

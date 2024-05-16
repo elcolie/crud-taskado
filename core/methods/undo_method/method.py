@@ -19,11 +19,11 @@ def undo_task(task_instance: CheckTaskId) -> typ.Union[TaskSuccessMessage]:
     try:
         task_repository = TaskRepository()
         task_repository.undo_task(task_instance)
-    except UndoError:
+    except UndoError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Task is created and immediately run undo.',
-        )
+        ) from exc
     return TaskSuccessMessage(
         message='Instance restored successfully!',
     )

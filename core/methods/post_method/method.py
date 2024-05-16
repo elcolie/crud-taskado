@@ -7,8 +7,7 @@ from pydantic import ValidationError
 from sqlmodel import create_engine
 
 from app import DATABASE_URL
-from core.common.validate_input import (GenericTaskInput,
-                                        TaskSuccessMessage)
+from core.common.validate_input import GenericTaskInput, TaskSuccessMessage
 from core.methods.crud import TaskRepository
 
 logger = logging.getLogger(__name__)

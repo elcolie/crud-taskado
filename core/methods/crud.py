@@ -90,6 +90,7 @@ class CreateTask:
             session.commit()
 
     def create_task(self, task_input: GenericTaskInput):
+        """Create a task."""
         validated_input_task = self.validate_input_task(task_input)
         self._create_task(validated_input_task)
 
@@ -120,6 +121,7 @@ class DeleteTask:
             session.commit()
 
     def delete_task(self, task_instance: CurrentTaskContent):
+        """Delete a task."""
         self._delete_task(task_instance)
 
 
@@ -133,6 +135,7 @@ class ListTask:
         user_instance: User,
         updated_user_instance: User
     ) -> sqlalchemy.orm.query.Query:
+        """List tasks."""
         tasks_results = get_queryset(
             _due_date=due_date_instance,
             _status=status_instance,
@@ -146,6 +149,7 @@ class DetailTask:
     """Mixin class for getting task."""
 
     def get_task_by_id(self, current_task: CurrentTaskContent) -> TaskContent:
+        """Get task by id."""
         with Session(engine) as session:
             task = (
                 session.query(TaskContent)
@@ -158,8 +162,10 @@ class DetailTask:
             )
         return task
 
+
 class UndoTask:
     """Mixin class for undoing."""
+
     def undo_task(self, task_instance: CheckTaskId) -> None:
         """Undo a task."""
         with Session(engine) as session:
@@ -224,10 +230,12 @@ class UndoTask:
             session.add(current_task_instance)
             session.commit()
 
+
 class ModifyTask:
     """Mixin class for updating a task."""
 
     def update(self, task_content_instance: UpdateTask, payload: UpdateTask) -> None:
+        """Update a task."""
         with Session(engine) as session:
             task = (
                 session.query(TaskContent).filter(TaskContent.id == payload.id).first()
@@ -265,6 +273,7 @@ class ModifyTask:
             session.add(new_content)
             session.add(current_task_instance)
             session.commit()
+
 
 class TaskRepository(ModifyTask,
                      UndoTask,

@@ -1,3 +1,4 @@
+"""Update method to update a task."""
 import logging
 import typing as typ
 

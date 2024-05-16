@@ -36,6 +36,7 @@ def validate_task_common_query_param(
     created_by__username: str = Query(None),
     updated_by__username: str = Query(None),
 ) -> CommonTaskQueryParams:
+    """Validate the task common query params."""
     errors: typ.List[ErrorDetail] = []
     due_date_instance: typ.Optional[date] = None
     status_instance: typ.Optional[StatusEnum] = None
