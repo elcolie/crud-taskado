@@ -15,6 +15,7 @@ engine = create_engine(DATABASE_URL, echo=True)
 
 
 async def valid_undo_task(task_id: int) -> CheckTaskId:
+    """Validate the undo task id and return the CheckTaskId."""
     try:
         task_instance = CheckTaskId(id=task_id)
     except ValidationError as e:
@@ -27,6 +28,7 @@ async def valid_undo_task(task_id: int) -> CheckTaskId:
 
 
 async def valid_task(task_id: int) -> CurrentTaskContent:
+    """Validate the task id and return the CurrentTaskContent."""
     try:
         _ = CheckTaskId(id=task_id)
     except ValidationError as e:

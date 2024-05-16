@@ -1,3 +1,4 @@
+"""List tasks method."""
 import logging
 import typing as typ
 from datetime import date
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class CommonTaskQueryParams:
+    """Common task query params in one place."""
     def __init__(
         self,
         due_date: str | date | None,

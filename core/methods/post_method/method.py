@@ -1,3 +1,4 @@
+"""POST method to create task."""
 import logging
 import typing as typ
 
@@ -6,9 +7,8 @@ from pydantic import ValidationError
 from sqlmodel import create_engine
 
 from app import DATABASE_URL
-from core.common.validate_input import (ErrorDetail, GenericTaskInput,
-                                        TaskSuccessMessage,
-                                        TaskValidationError, parse_date)
+from core.common.validate_input import (GenericTaskInput,
+                                        TaskSuccessMessage)
 from core.methods.crud import TaskRepository
 
 logger = logging.getLogger(__name__)

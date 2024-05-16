@@ -34,6 +34,7 @@ repos:
       args:
         - --ignore-patterns=venv
         - --disable=import-error
+        - --disable=too-few-public-methods
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.15.0

@@ -188,9 +188,16 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         """Filter with non-numeric string."""
         response = client.get('/?due_date=some_string')
         assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
-        assert response.json() == {'detail': [{'loc': ['due_date'],
-                                               'msg': "Invalid date format. Must be in 'YYYY-MM-DD' format.",
-                                               'type': 'ValueError'}]}
+        assert response.json() == {
+            'detail':
+                [
+                    {
+                        'loc': ['due_date'],
+                        'msg': "Invalid date format. Must be in 'YYYY-MM-DD' format.",
+                        'type': 'ValueError'
+                    }
+                ]
+        }
 
     def test_filter_status_and_found(self) -> None:
         """Filter by status."""
