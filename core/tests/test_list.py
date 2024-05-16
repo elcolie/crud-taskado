@@ -440,9 +440,7 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
     def test_filter_wrong_created_by_and_valid_updated_by(self) -> None:
         """Filter by created_by, and updated_by username."""
         update_response = self._test_user_created_sarit_updated()
-        response = client.get(
-            '/?created_by__username=elcolie&updated_by__username=taksin'
-        )
+        response = client.get('/?created_by__username=elcolie&updated_by__username=taksin')
         assert update_response.status_code == status.HTTP_200_OK
         assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
         assert response.json() == {

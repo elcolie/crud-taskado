@@ -10,9 +10,9 @@ from fastapi import Depends
 
 # Database connection url
 from app import DATABASE_URL
-from core.common.get_instance import valid_task
+from core.common.get_instance import valid_task, valid_undo_task
 from core.common.validate_input import GenericTaskInput, TaskSuccessMessage, TaskValidationError, ErrorDetail, \
-    ResponsePayload, UpdateTask
+    ResponsePayload, UpdateTask, CheckTaskId
 from core.methods.delete_method.method import delete_task
 from core.methods.get_detail_method.method import get_task
 from core.methods.get_list_method.method import list_tasks
@@ -35,24 +35,24 @@ engine = create_engine(DATABASE_URL, echo=True)
 app = FastAPI()
 
 
-@app.post('/create-task/', status_code=status.HTTP_201_CREATED)
-async def _create_task(task_input: GenericTaskInput) -> TaskSuccessMessage:
+@app.post('/create-task/', status_code=status.HTTP_201_CREATED, response_model=TaskSuccessMessage)
+async def _create_task(task_input: GenericTaskInput) -> typ.Any:
     """Endpoint to create a task."""
     return create_task(task_input)
 
 
-@app.delete('/{task_id}')
-async def _delete_task(task_id: CurrentTaskContent = Depends(valid_task)) -> TaskSuccessMessage:
+@app.delete('/{task_id}', response_model=TaskSuccessMessage)
+async def _delete_task(task_id: CurrentTaskContent = Depends(valid_task)) -> typ.Any:
     """Endpoint to delete a task."""
     return delete_task(task_id)
 
 
-@app.get('/{task_id}')
-async def _get_task(task_id: CurrentTaskContent = Depends(valid_task)) -> UpdateTask:
+@app.get('/{task_id}', response_model=UpdateTask)
+async def _get_task(task_id: CurrentTaskContent = Depends(valid_task)) -> typ.Any:
     return get_task(task_id)
 
 
-@app.get('/')
+@app.get('/')   # Use type annotation instead of response_model. Because of customized response.
 async def _list_tasks(  # pylint: disable=too-many-locals
     response: Response,
     due_date: str | None = None,
@@ -72,12 +72,12 @@ async def _list_tasks(  # pylint: disable=too-many-locals
         _per_page, )
 
 
-@app.post('/undo/{task_id}')
-async def _undo_task(task_id: int) -> typ.Union[TaskSuccessMessage]:
+@app.post('/undo/{task_id}', response_model=TaskSuccessMessage)
+async def _undo_task(task_id: CheckTaskId = Depends(valid_undo_task)) -> typ.Any:
     return undo_task(task_id)
 
 
-@app.put('/')
+@app.put('/', response_model=TaskSuccessMessage)
 async def _update_task(
     payload: UpdateTask,
 ) -> typ.Union[TaskSuccessMessage, TaskValidationError,]:
