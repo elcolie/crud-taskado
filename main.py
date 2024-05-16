@@ -2,17 +2,18 @@
 import logging
 import typing as typ
 
-from fastapi import FastAPI
-from fastapi import Response
-from fastapi import status
-from sqlalchemy import create_engine
 from fastapi import Depends
+from fastapi import FastAPI
+from fastapi import status
+# import all you need from fastapi-pagination
+from fastapi_pagination import Page, add_pagination, paginate
+from sqlalchemy import create_engine
 
 # Database connection url
 from app import DATABASE_URL
 from core.common.get_instance import valid_task, valid_undo_task
-from core.common.validate_input import GenericTaskInput, TaskSuccessMessage, TaskValidationError, ErrorDetail, \
-    ResponsePayload, UpdateTask, CheckTaskId
+from core.common.validate_input import GenericTaskInput, TaskSuccessMessage, TaskValidationError, UpdateTask, \
+    CheckTaskId, SummaryTask
 from core.methods.delete_method.method import delete_task
 from core.methods.get_detail_method.method import get_task
 from core.methods.get_list_method.method import list_tasks, CommonTaskQueryParams, validate_task_common_query_param
@@ -52,11 +53,11 @@ async def _get_task(task_id: CurrentTaskContent = Depends(valid_task)) -> typ.An
     return get_task(task_id)
 
 
-@app.get('/', response_model=ResponsePayload)
+@app.get('/', response_model=Page[SummaryTask])
 async def _list_tasks(
     commons: typ.Annotated[CommonTaskQueryParams, Depends(validate_task_common_query_param)],
 ) -> typ.Any:
-    return list_tasks(commons)
+    return paginate(list_tasks(commons))
 
 
 @app.post('/undo/{task_id}', response_model=TaskSuccessMessage)
@@ -70,3 +71,5 @@ async def _update_task(
 ) -> typ.Union[TaskSuccessMessage, TaskValidationError,]:
     """Endpoint to update a task."""
     return update_task(payload)
+
+add_pagination(app)
