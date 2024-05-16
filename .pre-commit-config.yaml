@@ -28,7 +28,7 @@ repos:
     - id: pylint
       name: pylint
       entry: /Users/sarit/.pyenv/versions/3.12.2/envs/try_fastapi/bin/pylint
-      exclude: ^migrations/
+      exclude: ^(migrations|tests)/
       language: system
       types: [python]
       args:
