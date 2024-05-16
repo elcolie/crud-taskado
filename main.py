@@ -15,7 +15,7 @@ from core.common.validate_input import GenericTaskInput, TaskSuccessMessage, Tas
     ResponsePayload, UpdateTask, CheckTaskId
 from core.methods.delete_method.method import delete_task
 from core.methods.get_detail_method.method import get_task
-from core.methods.get_list_method.method import list_tasks
+from core.methods.get_list_method.method import list_tasks, CommonTaskQueryParams, validate_task_common_query_param
 from core.methods.post_method.method import create_task
 from core.methods.undo_method.method import undo_task
 from core.methods.update_method.method import update_task
@@ -52,24 +52,11 @@ async def _get_task(task_id: CurrentTaskContent = Depends(valid_task)) -> typ.An
     return get_task(task_id)
 
 
-@app.get('/')   # Use type annotation instead of response_model. Because of customized response.
-async def _list_tasks(  # pylint: disable=too-many-locals
-    response: Response,
-    due_date: str | None = None,
-    task_status: str | None = None,
-    created_by__username: str | None = None,
-    updated_by__username: str | None = None,
-    _page_number: int = 1,  # Page number
-    _per_page: int = 10,  # Number of items per page
-) -> typ.Union[ResponsePayload, typ.Dict[str, typ.List[ErrorDetail]]]:
-    return list_tasks(
-        response,
-        due_date,
-        task_status,
-        created_by__username,
-        updated_by__username,
-        _page_number,
-        _per_page, )
+@app.get('/', response_model=ResponsePayload)
+async def _list_tasks(
+    commons: typ.Annotated[CommonTaskQueryParams, Depends(validate_task_common_query_param)],
+) -> typ.Any:
+    return list_tasks(commons)
 
 
 @app.post('/undo/{task_id}', response_model=TaskSuccessMessage)

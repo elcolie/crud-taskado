@@ -13,7 +13,7 @@ from app import DATABASE_URL
 from core.methods.get_list_method.pagination_gadgets import generate_query_params
 from main import app
 from core.tests.test_gadgets import (manual_create_task, prepare_users_for_test,
-                          remove_all_tasks_and_users)
+                                     remove_all_tasks_and_users)
 
 client = TestClient(app)
 
@@ -186,15 +186,9 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         """Filter with non-numeric string."""
         response = client.get('/?due_date=some_string')
         assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
-        assert response.json() == {
-            'message': [
-                {
-                    'loc': ['due_date'],
-                    'msg': "Invalid date format. Must be in 'YYYY-MM-DD' format.",
-                    'type': 'ValueError',
-                }
-            ]
-        }
+        assert response.json() == {'detail': [{'loc': ['due_date'],
+                                               'msg': "Invalid date format. Must be in 'YYYY-MM-DD' format.",
+                                               'type': 'ValueError'}]}
 
     def test_filter_status_and_found(self) -> None:
         """Filter by status."""
@@ -236,15 +230,9 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         self.before_test()
         response = client.get('/?created_by__username=taksin')
         assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
-        assert response.json() == {
-            'message': [
-                {
-                    'loc': ['created_by__username'],
-                    'msg': 'User does not exist.',
-                    'type': 'ValueError',
-                }
-            ]
-        }
+        assert response.json() == {'detail': [{'loc': ['created_by__username'],
+                                               'msg': 'User does not exist.',
+                                               'type': 'ValueError'}]}
 
     def test_filter_due_date_and_status_and_username(self) -> None:
         """Filter by created_by."""
@@ -443,15 +431,9 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         response = client.get('/?created_by__username=elcolie&updated_by__username=taksin')
         assert update_response.status_code == status.HTTP_200_OK
         assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
-        assert response.json() == {
-            'message': [
-                {
-                    'loc': ['updated_by__username'],
-                    'msg': 'User does not exist.',
-                    'type': 'ValueError',
-                }
-            ]
-        }
+        assert response.json() == {'detail': [{'loc': ['updated_by__username'],
+                                               'msg': 'User does not exist.',
+                                               'type': 'ValueError'}]}
 
     def test_filter_invalid_created_by_and_valid_updated_by(self) -> None:
         """Filter by created_by, and updated_by username."""
@@ -459,20 +441,12 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         response = client.get('/?created_by__username=maew&updated_by__username=taksin')
         assert update_response.status_code == status.HTTP_200_OK
         assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
-        assert response.json() == {
-            'message': [
-                {
-                    'loc': ['created_by__username'],
-                    'msg': 'User does not exist.',
-                    'type': 'ValueError',
-                },
-                {
-                    'loc': ['updated_by__username'],
-                    'msg': 'User does not exist.',
-                    'type': 'ValueError',
-                },
-            ]
-        }
+        assert response.json() == {'detail': [{'loc': ['created_by__username'],
+                                               'msg': 'User does not exist.',
+                                               'type': 'ValueError'},
+                                              {'loc': ['updated_by__username'],
+                                               'msg': 'User does not exist.',
+                                               'type': 'ValueError'}]}
 
     def test_pagination(self) -> None:
         """Test pagination expect 10 tasks per page."""
