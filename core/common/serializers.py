@@ -1,39 +1,18 @@
 """Deserialize the instance to a dictionary."""
 from marshmallow import fields, validate
 from marshmallow_sqlalchemy import SQLAlchemySchema
-from sqlalchemy import create_engine
 from sqlmodel import Session
 
-from app import DATABASE_URL
+from app import engine
 from core.models.models import StatusEnum, TaskContent, User
-
-# Use this because marshmellow can exclude identifier field. But for clarity.
-# I intentionally not use `exclude` to be explicit.
 
 
 class BaseSchema(SQLAlchemySchema):
     """Base schema for SQLAlchemy."""
-    class Meta:     # pylint: disable=too-few-public-methods
+
+    class Meta:  # pylint: disable=too-few-public-methods
         """Meta class."""
         sqla_session = Session
-
-
-# class SmartNested(Nested):
-#     def serialize(self, attr, obj, accessor=None):
-#         if attr not in obj.__dict__:
-#             return {'id': int(getattr(obj, attr + '_id'))}
-#         return super().serialize(attr, obj, accessor)
-
-
-class UserSchema(BaseSchema):
-    """Schema for User."""
-
-    class Meta(BaseSchema.Meta):  # pylint: disable=too-few-public-methods
-        """Meta class for UserSchema."""
-        model = User
-
-    id = fields.Integer()
-    username = fields.String()
 
 
 class BaseTaskContentSchema(BaseSchema):
@@ -80,8 +59,6 @@ class ListTaskSchemaOutput(BaseTaskContentSchema):
 
 def get_user(user_id: int) -> User:
     """Get user by id."""
-    # Create the database engine
-    engine = create_engine(DATABASE_URL, echo=True)
 
     with Session(engine) as session:
         return session.query(User).filter(User.id == user_id).first()

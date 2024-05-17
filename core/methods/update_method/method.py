@@ -4,15 +4,12 @@ import typing as typ
 
 from fastapi import HTTPException, status
 from pydantic import ValidationError
-from sqlmodel import create_engine
 
-from app import DATABASE_URL
 from core.common.validate_input import (ErrorDetail, TaskSuccessMessage,
                                         TaskValidationError, UpdateTask)
 from core.methods.crud import TaskRepository
 
 logger = logging.getLogger(__name__)
-engine = create_engine(DATABASE_URL, echo=True)
 
 
 def update_task(

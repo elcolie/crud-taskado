@@ -3,18 +3,16 @@ import unittest
 
 from fastapi import status
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
 from sqlmodel import Session
 
-from app import DATABASE_URL
 from core.models.models import CurrentTaskContent, TaskContent
 from core.tests.test_gadgets import (manual_create_task,
                                      prepare_users_for_test,
                                      remove_all_tasks_and_users)
 from main import app
+from app import engine
 
 client = TestClient(app)
-engine = create_engine(DATABASE_URL, echo=True)
 
 
 class TestDelete(unittest.TestCase):

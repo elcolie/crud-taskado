@@ -6,21 +6,15 @@ import httpx
 from faker import Faker
 from fastapi import status
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
 from sqlmodel import Session
 
-from app import DATABASE_URL
-from core.methods.get_list_method.pagination_gadgets import \
-    generate_query_params
+from app import engine
 from core.tests.test_gadgets import (manual_create_task,
                                      prepare_users_for_test,
                                      remove_all_tasks_and_users)
 from main import app
 
 client = TestClient(app)
-
-# Create the database engine
-engine = create_engine(DATABASE_URL, echo=True)
 
 
 class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
@@ -436,7 +430,7 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
                                                'type': 'ValueError'}]}
 
     def test_pagination(self) -> None:
-        """Test pagination expect 10 tasks per page."""
+        """Test pagination."""
         self._make_35_tasks()
         first_page_size_by_five = client.get('/?page=1&size=5')
         second_page_size_by_five = client.get('/?page=2&size=5')
@@ -506,21 +500,6 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
             'size': 50,
             'pages': 1
         }
-
-    def test_generate_query_params(self) -> None:
-        """Generate query param."""
-        query_params = generate_query_params(
-            due_date='2022-12-31',
-            task_status='pending',
-            created_by__username='test_user',
-            updated_by__username='sarit',
-        )
-        assert (
-            query_params
-            == ('?due_date=2022-12-31&task_status=pending'
-                '&created_by__username=test_user'
-                '&updated_by__username=sarit&_page_number=1&_per_page=10')
-        )
 
 
 if __name__ == '__main__':

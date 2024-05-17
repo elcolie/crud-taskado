@@ -6,9 +6,9 @@ from datetime import date, datetime
 import sqlalchemy
 from pydantic import ValidationError
 from sqlalchemy import desc, func
-from sqlmodel import Session, create_engine
+from sqlmodel import Session
 
-from app import DATABASE_URL
+from app import engine
 from core.common.validate_input import (CheckTaskId, ErrorDetail,
                                         GenericTaskInput, TaskValidationError,
                                         UndoError, UpdateTask, parse_date)
@@ -17,7 +17,6 @@ from core.models.models import (CurrentTaskContent, StatusEnum, TaskContent,
                                 User)
 
 logger = logging.getLogger(__name__)
-engine = create_engine(DATABASE_URL, echo=True)
 
 
 class CreateTask:

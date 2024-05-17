@@ -3,13 +3,11 @@ import typing as typ
 from datetime import date, datetime
 
 from pydantic import BaseModel, ValidationError, field_validator
-from sqlalchemy import create_engine, exists
+from sqlalchemy import exists
 from sqlmodel import Session
 
-from app import DATABASE_URL
+from app import engine
 from core.models.models import StatusEnum, TaskContent, User
-
-engine = create_engine(DATABASE_URL, echo=True)
 
 
 def check_due_date_format(value: str) -> str:

@@ -98,8 +98,8 @@ def validate_task_common_query_param(
     )
 
 
-def list_tasks(  # pylint: disable=too-many-locals
-    commons: CommonTaskQueryParams,
+def list_tasks(
+    commons: ConcreteCommonTaskQueryParams,
 ) -> typ.List[SummaryTask]:
     """Endpoint to list all tasks."""
     task_repository = TaskRepository()

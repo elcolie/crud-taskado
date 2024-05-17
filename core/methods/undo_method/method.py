@@ -3,15 +3,12 @@ import logging
 import typing as typ
 
 from fastapi import HTTPException, status
-from sqlmodel import create_engine
 
-from app import DATABASE_URL
 from core.common.validate_input import (CheckTaskId, TaskSuccessMessage,
                                         UndoError)
 from core.methods.crud import TaskRepository
 
 logger = logging.getLogger(__name__)
-engine = create_engine(DATABASE_URL, echo=True)
 
 
 def undo_task(task_instance: CheckTaskId) -> typ.Union[TaskSuccessMessage]:

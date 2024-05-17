@@ -4,14 +4,13 @@ import logging
 import sqlalchemy
 from fastapi import HTTPException, status
 from pydantic import ValidationError
-from sqlmodel import Session, create_engine
+from sqlmodel import Session
 
-from app import DATABASE_URL
+from app import engine
 from core.common.validate_input import CheckTaskId
 from core.models.models import CurrentTaskContent
 
 logger = logging.getLogger(__name__)
-engine = create_engine(DATABASE_URL, echo=True)
 
 
 async def valid_undo_task(task_id: int) -> CheckTaskId:

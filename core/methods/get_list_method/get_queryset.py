@@ -3,14 +3,12 @@ import typing as typ
 from datetime import date
 
 import sqlalchemy
-from sqlalchemy import and_, create_engine, or_
+from sqlalchemy import and_, or_
 from sqlmodel import Session
 
-from app import DATABASE_URL
+from app import engine
 from core.models.models import (CurrentTaskContent, StatusEnum, TaskContent,
                                 User)
-
-engine = create_engine(DATABASE_URL, echo=True)
 
 
 def get_queryset(
@@ -18,11 +16,8 @@ def get_queryset(
     _status: typ.Optional[StatusEnum],
     _created_user: typ.Optional[User],
     _updated_user: typ.Optional[User],
-    # _page_number: int = 1,  # Page number. Lazy load
-    # _per_page: int = 10, # Number of items per page
 ) -> sqlalchemy.orm.query.Query:
     """Get the queryset of tasks."""
-    # offset = (_page_number - 1) * _per_page
     with Session(engine) as session:
         if _updated_user is not None and _created_user is not None:
             # List out available id.
@@ -117,9 +112,4 @@ def get_queryset(
             )
             .order_by(TaskContent.id.asc())  # type: ignore[attr-defined]  # pylint: disable=no-member  # noqa: E501
         )
-        # Use lazy load when tasks is too much.
-        # ).offset(offset).limit(_per_page)
-
-        # for idx, i in enumerate(final_query):
-        #     print(f"{idx} == {i}")
         return final_query

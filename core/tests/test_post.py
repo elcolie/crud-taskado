@@ -9,17 +9,13 @@ from datetime import date
 
 from fastapi import status
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
 from sqlmodel import Session, select
 
-from app import DATABASE_URL
 from core.models.models import CurrentTaskContent, StatusEnum, TaskContent
 from core.tests.test_gadgets import (prepare_users_for_test,
                                      remove_all_tasks_and_users)
 from main import app
-
-# Create the database engine
-engine = create_engine(DATABASE_URL, echo=True)
+from app import engine
 
 client = TestClient(app)
 

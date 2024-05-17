@@ -2,16 +2,13 @@
 import logging
 
 from fastapi import HTTPException, status
-from sqlmodel import create_engine
 
-from app import DATABASE_URL
 from core.common.serializers import TaskContentSchema
 from core.common.validate_input import UpdateTask
 from core.methods.crud import TaskRepository
 from core.models.models import CurrentTaskContent, StatusEnum
 
 logger = logging.getLogger(__name__)
-engine = create_engine(DATABASE_URL, echo=True)
 
 
 def get_task(current_task: CurrentTaskContent) -> UpdateTask:

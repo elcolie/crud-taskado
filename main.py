@@ -5,10 +5,6 @@ import typing as typ
 from fastapi import Depends, FastAPI, status
 # import all you need from fastapi-pagination
 from fastapi_pagination import Page, add_pagination, paginate
-from sqlalchemy import create_engine
-
-# Database connection url
-from app import DATABASE_URL
 from core.common.get_instance import valid_task, valid_undo_task
 from core.common.validate_input import (CheckTaskId, GenericTaskInput,
                                         SummaryTask, TaskSuccessMessage,
@@ -30,8 +26,6 @@ logging.basicConfig(
 # Create a logger object
 logger = logging.getLogger(__name__)
 
-# Create the database engine
-engine = create_engine(DATABASE_URL, echo=True)
 
 app = FastAPI()
 

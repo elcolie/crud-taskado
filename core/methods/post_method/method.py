@@ -3,14 +3,11 @@ import logging
 
 from fastapi import HTTPException, status
 from pydantic import ValidationError
-from sqlmodel import create_engine
 
-from app import DATABASE_URL
 from core.common.validate_input import GenericTaskInput, TaskSuccessMessage
 from core.methods.crud import TaskRepository
 
 logger = logging.getLogger(__name__)
-engine = create_engine(DATABASE_URL, echo=True)
 
 
 def create_task(task_input: GenericTaskInput) -> TaskSuccessMessage:

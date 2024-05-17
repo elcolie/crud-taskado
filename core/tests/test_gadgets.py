@@ -3,17 +3,15 @@ import typing as typ
 
 from fastapi import status
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, desc
+from sqlalchemy import desc
 from sqlmodel import Session
 
-from app import DATABASE_URL
 from core.models.models import CurrentTaskContent, TaskContent, User
 from main import app
+from app import engine
 
 client = TestClient(app)
 
-# Create the database engine
-engine = create_engine(DATABASE_URL, echo=True)
 
 
 def prepare_users_for_test() -> None:

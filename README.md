@@ -35,3 +35,5 @@ It mutates the database. Then be careful.
 You need to add `User` first start with `id=1`.
 
 `python -m unittest core/tests/*.py`. To run all test cases.
+`python -m unittest core.tests.test_delete.TestDelete`. To run specific test file.
+`python -m unittest core.tests.test_delete.TestDelete.test_delete_task`. To run specific test case.
