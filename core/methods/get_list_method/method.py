@@ -42,7 +42,11 @@ def validate_task_common_query_param(
     """
     errors: typ.List[ErrorDetail] = []
 
-    def validate_and_collect_error(validation_func: typ.Callable, value: typ.Any, field_name: str) -> typ.Any:
+    def validate_and_collect_error(
+        validation_func: typ.Callable,
+        value: typ.Any,
+        field_name: str
+    ) -> typ.Any:
         try:
             return validation_func(value) if value else None
         except ValueError as e:
@@ -50,10 +54,14 @@ def validate_task_common_query_param(
             errors.append(ErrorDetail(loc=[field_name], msg=str(e), type='ValueError'))
             return None
 
-    due_date_instance: date | None = validate_and_collect_error(validate_due_date, due_date, 'due_date')
-    status_instance: StatusEnum | None = validate_and_collect_error(validate_status, task_status, 'status')
-    user_instance: User | None = validate_and_collect_error(validate_username, created_by_username, 'created_by_username')
-    updated_user_instance: User | None = validate_and_collect_error(validate_username, updated_by_username, 'updated_by_username')
+    due_date_instance: date | None = validate_and_collect_error(
+        validate_due_date, due_date, 'due_date')
+    status_instance: StatusEnum | None = validate_and_collect_error(
+        validate_status, task_status, 'status')
+    user_instance: User | None = validate_and_collect_error(
+        validate_username, created_by_username, 'created_by_username')
+    updated_user_instance: User | None = validate_and_collect_error(
+        validate_username, updated_by_username, 'updated_by_username')
 
     if len(errors) > 0:
         raise HTTPException(
