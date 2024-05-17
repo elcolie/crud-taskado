@@ -1,6 +1,5 @@
 """Update method to update a task."""
 import logging
-import typing as typ
 
 from fastapi import HTTPException, status
 from pydantic import ValidationError

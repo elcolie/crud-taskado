@@ -12,8 +12,9 @@ from core.common.validate_input import (CheckTaskId, GenericTaskInput,
                                         TaskValidationError, UpdateTask)
 from core.methods.delete_method.method import delete_task
 from core.methods.get_detail_method.method import get_task
-from core.methods.get_list_method.method import (list_tasks, validate_task_common_query_param,
-                                                 ConcreteCommonTaskQueryParams)
+from core.methods.get_list_method.method import (
+    ConcreteCommonTaskQueryParams, list_tasks,
+    validate_task_common_query_param)
 from core.methods.post_method.method import create_task
 from core.methods.undo_method.method import undo_task
 from core.methods.update_method.method import update_task

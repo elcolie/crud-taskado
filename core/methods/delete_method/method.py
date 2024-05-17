@@ -1,6 +1,5 @@
 """DELETE method to delete a task."""
 import logging
-import typing as typ
 
 from core.common.validate_input import TaskSuccessMessage
 from core.methods.crud import TaskRepository

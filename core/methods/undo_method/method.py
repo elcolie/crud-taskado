@@ -1,6 +1,5 @@
 """Undo method to restore a task."""
 import logging
-import typing as typ
 
 from fastapi import HTTPException, status
 
