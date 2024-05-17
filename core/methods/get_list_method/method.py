@@ -43,7 +43,7 @@ def validate_task_common_query_param(
     errors: typ.List[ErrorDetail] = []
 
     def validate_and_collect_error(
-        validation_func: typ.Callable,
+        validation_func: typ.Callable[[typ.Any], typ.Any],
         value: typ.Any,
         field_name: str
     ) -> typ.Any:
