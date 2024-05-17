@@ -15,43 +15,28 @@ from core.models.models import StatusEnum, User
 logger = logging.getLogger(__name__)
 
 
-class CommonTaskQueryParams:
-    """Common task query params in one place."""
-    def __init__(
-        self,
-        due_date: str | None,
-        task_status: str | None,
-        created_by__username: str | None,
-        updated_by__username: str | None,
-    ):
-        self.due_date = due_date
-        self.task_status = task_status
-        self.created_by__username = created_by__username
-        self.updated_by__username = updated_by__username
-
-
 class ConcreteCommonTaskQueryParams:
     """Concrete common task query params. It is filled with instances."""
     def __init__(
         self,
         due_date: date | None,
         task_status: StatusEnum | None,
-        created_by__username: User | None,
-        updated_by__username: User | None,
+        created_by_username: User | None,
+        updated_by_username: User | None,
     ):
         self.due_date = due_date
         self.task_status = task_status
-        self.created_by__username = created_by__username
-        self.updated_by__username = updated_by__username
+        self.created_by_username = created_by_username
+        self.updated_by_username = updated_by_username
 
 
 def validate_task_common_query_param(
     due_date: str = Query(None),
     task_status: str = Query(None),
-    created_by__username: str = Query(None),
-    updated_by__username: str = Query(None),
+    created_by_username: str = Query(None),
+    updated_by_username: str = Query(None),
 ) -> ConcreteCommonTaskQueryParams:
-    """Validate the task common query params."""
+    """Validate the task common query params. If it is not valid collect the error until end and raise it."""
     errors: typ.List[ErrorDetail] = []
     due_date_instance: typ.Optional[date] = None
     status_instance: typ.Optional[StatusEnum] = None
@@ -69,21 +54,21 @@ def validate_task_common_query_param(
         errors.append(ErrorDetail(loc=['status'], msg=str(e), type='ValueError'))
     try:
         user_instance = (
-            validate_username(created_by__username) if created_by__username else None
+            validate_username(created_by_username) if created_by_username else None
         )
     except ValueError as e:
         logger.info(f"Username validation failed. {e}")  # pylint: disable=logging-fstring-interpolation
         errors.append(
-            ErrorDetail(loc=['created_by__username'], msg=str(e), type='ValueError')
+            ErrorDetail(loc=['created_by_username'], msg=str(e), type='ValueError')
         )
     try:
         updated_user_instance = (
-            validate_username(updated_by__username) if updated_by__username else None
+            validate_username(updated_by_username) if updated_by_username else None
         )
     except ValueError as e:
         logger.info(f"Updated username validation failed. {e}")  # pylint: disable=logging-fstring-interpolation
         errors.append(
-            ErrorDetail(loc=['updated_by__username'], msg=str(e), type='ValueError')
+            ErrorDetail(loc=['updated_by_username'], msg=str(e), type='ValueError')
         )
     if len(errors) > 0:
         raise HTTPException(
@@ -93,8 +78,8 @@ def validate_task_common_query_param(
     return ConcreteCommonTaskQueryParams(
         due_date=due_date_instance,
         task_status=status_instance,
-        created_by__username=user_instance,
-        updated_by__username=updated_user_instance,
+        created_by_username=user_instance,
+        updated_by_username=updated_user_instance,
     )
 
 
@@ -106,16 +91,16 @@ def list_tasks(
     tasks_results = task_repository.list_tasks(
         commons.due_date,
         commons.task_status,
-        commons.created_by__username,
-        commons.updated_by__username,
+        commons.created_by_username,
+        commons.updated_by_username,
     )
     list_task_schema_output = ListTaskSchemaOutput()
 
-    _list_tasks = []
+    raw_list_tasks = []
     for _task in tasks_results:
         created_by: User = get_user(_task[0].created_by)
         updated_by: User = get_user(_task[0].updated_by)
-        _list_tasks.append(
+        raw_list_tasks.append(
             {
                 'id': _task[1].id,
                 'title': _task[1].title,
@@ -125,13 +110,13 @@ def list_tasks(
                 'created_by': _task[0].created_by,
                 'updated_by': _task[0].updated_by,
                 # Should wrap into single query.
-                'created_by__username': created_by.username
+                'created_by_username': created_by.username
                 if created_by is not None
                 else None,
-                'updated_by__username': updated_by.username
+                'updated_by_username': updated_by.username
                 if updated_by is not None
                 else None,
             }
         )
-    serialized_tasks = list_task_schema_output.dump(_list_tasks, many=True)
+    serialized_tasks = list_task_schema_output.dump(raw_list_tasks, many=True)
     return [SummaryTask(**i) for i in serialized_tasks]

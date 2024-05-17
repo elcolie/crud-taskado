@@ -11,7 +11,7 @@ from core.methods.crud import TaskRepository
 logger = logging.getLogger(__name__)
 
 
-def undo_task(task_instance: CheckTaskId) -> typ.Union[TaskSuccessMessage]:
+def undo_task(task_instance: CheckTaskId) -> TaskSuccessMessage:
     """Endpoint to undo a task."""
     try:
         task_repository = TaskRepository()

@@ -12,8 +12,8 @@ from core.common.validate_input import (CheckTaskId, GenericTaskInput,
                                         TaskValidationError, UpdateTask)
 from core.methods.delete_method.method import delete_task
 from core.methods.get_detail_method.method import get_task
-from core.methods.get_list_method.method import (
-    CommonTaskQueryParams, list_tasks, validate_task_common_query_param)
+from core.methods.get_list_method.method import (list_tasks, validate_task_common_query_param,
+                                                 ConcreteCommonTaskQueryParams)
 from core.methods.post_method.method import create_task
 from core.methods.undo_method.method import undo_task
 from core.methods.update_method.method import update_task
@@ -26,7 +26,6 @@ logging.basicConfig(
 
 # Create a logger object
 logger = logging.getLogger(__name__)
-
 
 app = FastAPI()
 
@@ -50,7 +49,7 @@ async def _get_task(task_id: CurrentTaskContent = Depends(valid_task)) -> typ.An
 
 @app.get('/', response_model=Page[SummaryTask])
 async def _list_tasks(
-    commons: typ.Annotated[CommonTaskQueryParams, Depends(validate_task_common_query_param)],
+    commons: typ.Annotated[ConcreteCommonTaskQueryParams, Depends(validate_task_common_query_param)],
 ) -> typ.Any:
     return paginate(list_tasks(commons))
 
@@ -63,8 +62,9 @@ async def _undo_task(task_id: CheckTaskId = Depends(valid_undo_task)) -> typ.Any
 @app.put('/', response_model=TaskSuccessMessage)
 async def _update_task(
     payload: UpdateTask,
-) -> typ.Union[TaskSuccessMessage, TaskValidationError,]:
+) -> TaskSuccessMessage | TaskValidationError:
     """Endpoint to update a task."""
     return update_task(payload)
+
 
 add_pagination(app)

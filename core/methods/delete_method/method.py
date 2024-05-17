@@ -9,7 +9,7 @@ from core.models.models import CurrentTaskContent
 logger = logging.getLogger(__name__)
 
 
-def delete_task(task_instance: CurrentTaskContent) -> typ.Union[TaskSuccessMessage]:
+def delete_task(task_instance: CurrentTaskContent) -> TaskSuccessMessage:
     """Endpoint to delete a task."""
     task_repository = TaskRepository()
     task_repository.delete_task(task_instance)

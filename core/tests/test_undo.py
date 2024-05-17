@@ -66,8 +66,8 @@ class UndoMech(unittest.TestCase):
                     'status': 'StatusEnum.COMPLETED',
                     'created_by': 10,
                     'updated_by': 10,
-                    'created_by__username': 'test_user',
-                    'updated_by__username': 'test_user'
+                    'created_by_username': 'test_user',
+                    'updated_by_username': 'test_user'
                 }
             ],
             'total': 1,

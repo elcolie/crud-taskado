@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def update_task(
     payload: UpdateTask,
-) -> typ.Union[TaskSuccessMessage, TaskValidationError,]:
+) -> TaskSuccessMessage | TaskValidationError:
     """Endpoint to update a task."""
     try:
         task_content_instance = UpdateTask(**payload.dict())

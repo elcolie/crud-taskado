@@ -52,9 +52,9 @@ class TaskContentSchema(BaseTaskContentSchema):
 class ListTaskSchemaOutput(BaseTaskContentSchema):
     """List task schema."""
 
-    created_by__username: str | None = fields.String()
+    created_by_username: str | None = fields.String()
     updated_by: int | None = fields.Integer()
-    updated_by__username: str | None = fields.String()
+    updated_by_username: str | None = fields.String()
 
 
 def get_user(user_id: int) -> User:

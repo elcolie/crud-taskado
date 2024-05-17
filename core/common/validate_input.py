@@ -113,8 +113,8 @@ class SummaryTask(BaseModel):
     status: str
     created_by: int | None
     updated_by: int | None
-    created_by__username: str | None
-    updated_by__username: str | None
+    created_by_username: str | None
+    updated_by_username: str | None
 
 
 class ResponsePayload(BaseModel):
