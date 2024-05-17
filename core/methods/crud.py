@@ -129,10 +129,10 @@ class ListTask:
 
     def list_tasks(
         self,
-        due_date_instance: date,
-        status_instance: StatusEnum,
-        user_instance: User,
-        updated_user_instance: User
+        due_date_instance: date | None,
+        status_instance: StatusEnum | None,
+        user_instance: User | None,
+        updated_user_instance: User | None
     ) -> sqlalchemy.orm.query.Query:
         """List tasks."""
         tasks_results = get_queryset(

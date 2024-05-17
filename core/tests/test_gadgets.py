@@ -13,7 +13,6 @@ from main import app
 client = TestClient(app)
 
 
-
 def prepare_users_for_test() -> None:
     """Create user for test."""
     with Session(engine) as session:
