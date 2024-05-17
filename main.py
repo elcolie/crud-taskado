@@ -50,7 +50,10 @@ async def _get_task(task_id: CurrentTaskContent = Depends(valid_task)) -> typ.An
 
 @app.get('/', response_model=Page[SummaryTask])
 async def _list_tasks(
-    commons: typ.Annotated[ConcreteCommonTaskQueryParams, Depends(validate_task_common_query_param)],
+    commons: typ.Annotated[
+        ConcreteCommonTaskQueryParams,
+        Depends(validate_task_common_query_param)
+    ],
 ) -> typ.Any:
     return paginate(list_tasks(commons))
 
