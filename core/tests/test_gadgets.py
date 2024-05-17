@@ -6,9 +6,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import desc
 from sqlmodel import Session
 
+from app import engine
 from core.models.models import CurrentTaskContent, TaskContent, User
 from main import app
-from app import engine
 
 client = TestClient(app)
 
