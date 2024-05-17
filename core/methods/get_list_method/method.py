@@ -50,7 +50,7 @@ def validate_task_common_query_param(
         try:
             return validation_func(value) if value else None
         except ValueError as e:
-            logger.info(f"{field_name} validation failed. {e}")
+            logger.info("%s validation failed. %s", field_name, e)
             errors.append(ErrorDetail(loc=[field_name], msg=str(e), type='ValueError'))
             return None
 
