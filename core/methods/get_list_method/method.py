@@ -36,40 +36,25 @@ def validate_task_common_query_param(
     created_by_username: str = Query(None),
     updated_by_username: str = Query(None),
 ) -> ConcreteCommonTaskQueryParams:
-    """Validate the task common query params. If it is not valid collect the error until end and raise it."""
+    """
+    Validate the task common query params.
+    If it is not valid collect the error until end and raise it.
+    """
     errors: typ.List[ErrorDetail] = []
-    due_date_instance: typ.Optional[date] = None
-    status_instance: typ.Optional[StatusEnum] = None
-    user_instance: typ.Optional[User] = None
-    updated_user_instance: typ.Optional[User] = None
-    try:
-        due_date_instance = validate_due_date(due_date) if due_date else None
-    except ValueError as e:
-        logger.info(f"Due date validation failed. {e}")  # pylint: disable=logging-fstring-interpolation
-        errors.append(ErrorDetail(loc=['due_date'], msg=str(e), type='ValueError'))
-    try:
-        status_instance = validate_status(task_status) if task_status else None
-    except ValueError as e:
-        logger.info(f"Status validation failed. {e}")  # pylint: disable=logging-fstring-interpolation
-        errors.append(ErrorDetail(loc=['status'], msg=str(e), type='ValueError'))
-    try:
-        user_instance = (
-            validate_username(created_by_username) if created_by_username else None
-        )
-    except ValueError as e:
-        logger.info(f"Username validation failed. {e}")  # pylint: disable=logging-fstring-interpolation
-        errors.append(
-            ErrorDetail(loc=['created_by_username'], msg=str(e), type='ValueError')
-        )
-    try:
-        updated_user_instance = (
-            validate_username(updated_by_username) if updated_by_username else None
-        )
-    except ValueError as e:
-        logger.info(f"Updated username validation failed. {e}")  # pylint: disable=logging-fstring-interpolation
-        errors.append(
-            ErrorDetail(loc=['updated_by_username'], msg=str(e), type='ValueError')
-        )
+
+    def validate_and_collect_error(validation_func: typ.Callable, value: typ.Any, field_name: str) -> date | StatusEnum | User | None:
+        try:
+            return validation_func(value) if value else None
+        except ValueError as e:
+            logger.info(f"{field_name} validation failed. {e}")
+            errors.append(ErrorDetail(loc=[field_name], msg=str(e), type='ValueError'))
+            return None
+
+    due_date_instance = validate_and_collect_error(validate_due_date, due_date, 'due_date')
+    status_instance = validate_and_collect_error(validate_status, task_status, 'status')
+    user_instance = validate_and_collect_error(validate_username, created_by_username, 'created_by_username')
+    updated_user_instance = validate_and_collect_error(validate_username, updated_by_username, 'updated_by_username')
+
     if len(errors) > 0:
         raise HTTPException(
             status_code=status.HTTP_406_NOT_ACCEPTABLE,

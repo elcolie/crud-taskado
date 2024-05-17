@@ -15,7 +15,7 @@ def create_task(task_input: GenericTaskInput) -> TaskSuccessMessage:
     # Instantiate the logic class
     task_repository = TaskRepository()
     try:
-        _ = task_repository.create_task(task_input)
+        task_repository.create_task(task_input)
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e) from e
 
