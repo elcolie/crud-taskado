@@ -2,7 +2,7 @@
 import typing as typ
 from datetime import date, datetime
 
-from pydantic import BaseModel, ValidationError, field_validator
+from pydantic import BaseModel, ValidationError, field_validator, Field
 from sqlalchemy import exists
 from sqlmodel import Session
 
@@ -24,14 +24,28 @@ def check_due_date_format(value: str) -> str:
 class GenericTaskInput(BaseModel):
     """Pydantic model to validate input data for creating a task."""
 
-    title: str | None
-    description: str | None
+    title: str | None = Field(None, title='Task title')
+    description: str | None = Field(None, title='Task description')
     status: StatusEnum = StatusEnum.PENDING
-    due_date: str | None = None
-    created_by: int | None = None
+    due_date: str | None = Field(None, title='Due date in YYYY-MM-DD format')
+    created_by: int | None = Field(None, title='User id')
 
     # created_at: datetime = Field(default_factory=datetime.today)
     # updated_at: datetime = Field(default_factory=datetime.today)
+
+    # model_config = {
+    #     "json_schema_extra": {
+    #         "examples": [
+    #             {
+    #                 "title": "Buy plum juice",
+    #                 "description": "Buy plum juice from the store",
+    #                 "status": "pending",
+    #                 "due_date": "2021-12-31",
+    #                 "created_by": 1
+    #             }
+    #         ]
+    #     }
+    # }
 
     # https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.field_validator
     @field_validator('due_date')
