@@ -1,6 +1,7 @@
 """FastAPI CRUD operations with SQLAlchemy."""
 import logging
 import typing as typ
+from enum import Enum
 
 from fastapi import Depends, FastAPI, status, Body
 # import all you need from fastapi-pagination
@@ -31,11 +32,16 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 
+class Tags(Enum):
+    tasks = "tasks"
+    undo = "undo"
+
+
 @app.post('/create-task/',
           description="Create todo task",
           status_code=status.HTTP_201_CREATED,
           response_model=TaskSuccessMessage,
-          tags=["tasks"]
+          tags=[Tags.tasks.value]
           )
 async def _create_task(
     task_input: typ.Annotated[
@@ -82,19 +88,19 @@ async def _create_task(
     return create_task(task_input)
 
 
-@app.delete('/{task_id}', description="Delete task", status_code=status.HTTP_204_NO_CONTENT, tags=["tasks"])
+@app.delete('/{task_id}', description="Delete task", status_code=status.HTTP_204_NO_CONTENT, tags=[Tags.tasks.value])
 async def _delete_task(task_id: CurrentTaskContent = Depends(valid_task)) -> None:
     """Endpoint to delete a task."""
     delete_task(task_id)
     return
 
 
-@app.get('/{task_id}', description="Get task detail", response_model=UpdateTask, tags=["tasks"])
+@app.get('/{task_id}', description="Get task detail", response_model=UpdateTask, tags=[Tags.tasks.value])
 async def _get_task(task_id: CurrentTaskContent = Depends(valid_task)) -> typ.Any:
     return get_task(task_id)
 
 
-@app.get('/', description="List out tasks", response_model=Page[SummaryTask], tags=["tasks"])
+@app.get('/', description="List out tasks", response_model=Page[SummaryTask], tags=[Tags.tasks.value])
 async def _list_tasks(
     commons: typ.Annotated[
         ConcreteCommonTaskQueryParams,
@@ -104,12 +110,12 @@ async def _list_tasks(
     return paginate(list_tasks(commons))
 
 
-@app.post('/undo/{task_id}', description="Undo task", response_model=TaskSuccessMessage, tags=["undo"])
+@app.post('/undo/{task_id}', description="Undo task", response_model=TaskSuccessMessage, tags=[Tags.undo.value])
 async def _undo_task(task_id: CheckTaskId = Depends(valid_undo_task)) -> typ.Any:
     return undo_task(task_id)
 
 
-@app.put('/', description="Update task", response_model=TaskSuccessMessage, tags=["tasks"])
+@app.put('/', description="Update task", response_model=TaskSuccessMessage, tags=[Tags.tasks.value])
 async def _update_task(
     payload: typ.Annotated[
         UpdateTask,
