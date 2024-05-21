@@ -35,6 +35,7 @@ app = FastAPI()
           description="Create todo task",
           status_code=status.HTTP_201_CREATED,
           response_model=TaskSuccessMessage,
+          tags=["tasks"]
           )
 async def _create_task(
     task_input: typ.Annotated[
@@ -81,19 +82,19 @@ async def _create_task(
     return create_task(task_input)
 
 
-@app.delete('/{task_id}', description="Delete task", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete('/{task_id}', description="Delete task", status_code=status.HTTP_204_NO_CONTENT, tags=["tasks"])
 async def _delete_task(task_id: CurrentTaskContent = Depends(valid_task)) -> None:
     """Endpoint to delete a task."""
     delete_task(task_id)
     return
 
 
-@app.get('/{task_id}', description="Get task detail", response_model=UpdateTask)
+@app.get('/{task_id}', description="Get task detail", response_model=UpdateTask, tags=["tasks"])
 async def _get_task(task_id: CurrentTaskContent = Depends(valid_task)) -> typ.Any:
     return get_task(task_id)
 
 
-@app.get('/', description="List out tasks", response_model=Page[SummaryTask])
+@app.get('/', description="List out tasks", response_model=Page[SummaryTask], tags=["tasks"])
 async def _list_tasks(
     commons: typ.Annotated[
         ConcreteCommonTaskQueryParams,
@@ -103,12 +104,12 @@ async def _list_tasks(
     return paginate(list_tasks(commons))
 
 
-@app.post('/undo/{task_id}', description="Undo task", response_model=TaskSuccessMessage)
+@app.post('/undo/{task_id}', description="Undo task", response_model=TaskSuccessMessage, tags=["undo"])
 async def _undo_task(task_id: CheckTaskId = Depends(valid_undo_task)) -> typ.Any:
     return undo_task(task_id)
 
 
-@app.put('/', description="Update task", response_model=TaskSuccessMessage)
+@app.put('/', description="Update task", response_model=TaskSuccessMessage, tags=["tasks"])
 async def _update_task(
     payload: typ.Annotated[
         UpdateTask,
