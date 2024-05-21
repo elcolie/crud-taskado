@@ -141,11 +141,8 @@ class ResponsePayload(BaseModel):
 
 def parse_date(date_str: str) -> date:
     """Function to parse date string."""
-    try:
-        year, month, day = date_str.split('-')
-        return date(int(year), int(month), int(day))
-    except ValueError as exc:
-        raise ValidationError("Invalid date format. Must be in 'YYYY-MM-DD' format.") from exc
+    year, month, day = date_str.split('-')
+    return date(int(year), int(month), int(day))
 
 
 def validate_due_date(str_due_date: str) -> typ.Optional[date]:
@@ -160,7 +157,6 @@ def validate_status(str_status: str) -> StatusEnum:
     for _status in StatusEnum:
         if _status.value == str_status:
             return _status
-    raise ValueError('StatusEnum is invalid status value.')
 
 
 def validate_username(str_username: str) -> User:

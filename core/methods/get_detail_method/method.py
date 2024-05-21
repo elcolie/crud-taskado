@@ -16,11 +16,6 @@ def get_task(current_task: CurrentTaskContent) -> UpdateTask:
     task_repository = TaskRepository()
     task = task_repository.get_task_by_id(current_task)
     task_content_schema = TaskContentSchema()
-    # Task is deleted. Then id is here, but is_deleted is True.
-    if task is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Task is deleted'
-        )
     serialized_task = task_content_schema.dump(task)
 
     # Get the status enum string

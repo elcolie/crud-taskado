@@ -159,10 +159,10 @@ class TestList(unittest.TestCase):  # pylint: disable=too-many-public-methods
         assert 3 == list_response.json()['total']
         assert second_task_response.status_code == status.HTTP_200_OK
         assert second_task_final_response.status_code == status.HTTP_200_OK
-        assert deleted_response.status_code == status.HTTP_200_OK
+        assert deleted_response.status_code == status.HTTP_204_NO_CONTENT
         assert fourth_task_updated_response.status_code == status.HTTP_200_OK
         assert fourth_task_last_updated_response.status_code == status.HTTP_200_OK
-        assert fourth_deleted_response.status_code == status.HTTP_200_OK
+        assert fourth_deleted_response.status_code == status.HTTP_204_NO_CONTENT
 
     def test_filter_due_date_and_found(self) -> None:
         """Filter by exact due_date."""

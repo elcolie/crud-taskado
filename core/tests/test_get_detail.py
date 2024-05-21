@@ -107,7 +107,7 @@ class TestGetDetail(unittest.TestCase):
         task_id = manual_create_task()
         deleted_response = client.delete(f"/{task_id}")
         get_response = client.get(f"/{task_id}")
-        assert deleted_response.status_code == status.HTTP_200_OK
+        assert deleted_response.status_code == status.HTTP_204_NO_CONTENT
         assert (
             get_response.status_code == status.HTTP_404_NOT_FOUND
         )  # Because raises by BaseModel
@@ -134,7 +134,7 @@ class TestGetDetail(unittest.TestCase):
         get_response = client.get(f"/{task_id}")
         assert first_response.status_code == status.HTTP_200_OK
         assert second_response.status_code == status.HTTP_200_OK
-        assert deleted_response.status_code == status.HTTP_200_OK
+        assert deleted_response.status_code == status.HTTP_204_NO_CONTENT
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
         assert get_response.json() == {'detail': f"Task not found: {task_id}"}
 

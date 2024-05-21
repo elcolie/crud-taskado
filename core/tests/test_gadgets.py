@@ -39,24 +39,6 @@ def remove_all_tasks_and_users() -> None:
         session.commit()
 
 
-def test_this_func(test_case: typ.Callable) -> None:
-    """
-    Wrapper function to test.
-
-    Start fresh everytime.
-    Wrap with remove_all_tasks()
-
-    """
-
-    def wrapper():
-        remove_all_tasks_and_users()
-        prepare_users_for_test()
-        test_case()
-        remove_all_tasks_and_users()
-
-    return wrapper()
-
-
 def manual_create_task(
     has_user: bool = True,
     user_id: int = 10,

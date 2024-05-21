@@ -15,14 +15,7 @@ logger = logging.getLogger(__name__)
 
 async def valid_undo_task(task_id: int) -> CheckTaskId:
     """Validate the undo task id and return the CheckTaskId."""
-    try:
-        task_instance = CheckTaskId(id=task_id)
-    except ValidationError as e:
-        logger.error(f"Validation failed UNDO method: {e}")  # pylint: disable=logging-fstring-interpolation
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Unable to undo. Task not found',
-        ) from e
+    task_instance = CheckTaskId(id=task_id)
     return task_instance
 
 

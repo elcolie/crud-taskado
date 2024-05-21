@@ -48,8 +48,8 @@ class TestDelete(unittest.TestCase):
             assert current is None
             assert 0 == session.query(CurrentTaskContent).count()
 
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json() == {'message': 'Instance deleted successfully!'}
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert response.text == ''
 
     def test_delete_invalid_task(self) -> None:
         """Test invalid task id."""

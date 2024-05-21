@@ -4,14 +4,11 @@ import uuid
 from datetime import date, datetime
 
 import sqlalchemy
-from pydantic import ValidationError
 from sqlalchemy import desc, func
 from sqlmodel import Session
 
 from app import engine
-from core.common.validate_input import (CheckTaskId, ErrorDetail,
-                                        GenericTaskInput, TaskValidationError,
-                                        UndoError, UpdateTask, parse_date)
+from core.common.validate_input import (CheckTaskId, GenericTaskInput, UndoError, UpdateTask, parse_date)
 from core.methods.get_list_method.get_queryset import get_queryset
 from core.models.models import (CurrentTaskContent, StatusEnum, TaskContent,
                                 User)
@@ -25,24 +22,7 @@ class CreateTask:
     @staticmethod
     def validate_input_task(task_input: GenericTaskInput) -> GenericTaskInput:
         """Create a task."""
-        try:
-            instance = GenericTaskInput(**task_input.dict())
-            logger.info('Validation successful!')
-        except ValidationError as e:
-            logger.error(f"Validation failed: {e}")  # pylint: disable=logging-fstring-interpolation
-            out_payload = TaskValidationError(
-                message='Validation failed!',
-                errors=[
-                    ErrorDetail(
-                        loc=error['loc'],
-                        msg=error['msg'],
-                        type=error['type'],
-                    )
-                    for error in e.errors()
-                ],
-            )
-            # BaseModel raises 422 status code. Raise here to be safe.
-            raise ValidationError(detail=out_payload) from e
+        instance = GenericTaskInput(**task_input.dict())
         return instance
 
     @staticmethod

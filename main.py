@@ -81,10 +81,11 @@ async def _create_task(
     return create_task(task_input)
 
 
-@app.delete('/{task_id}', description="Delete task", response_model=TaskSuccessMessage)
-async def _delete_task(task_id: CurrentTaskContent = Depends(valid_task)) -> typ.Any:
+@app.delete('/{task_id}', description="Delete task", status_code=status.HTTP_204_NO_CONTENT)
+async def _delete_task(task_id: CurrentTaskContent = Depends(valid_task)) -> None:
     """Endpoint to delete a task."""
-    return delete_task(task_id)
+    delete_task(task_id)
+    return
 
 
 @app.get('/{task_id}', description="Get task detail", response_model=UpdateTask)

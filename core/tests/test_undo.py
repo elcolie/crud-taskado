@@ -51,8 +51,8 @@ class UndoMech(unittest.TestCase):
         # GET list must show the task
         get_response = client.get('/')
 
-        assert deleted_response.status_code == status.HTTP_200_OK
-        assert deleted_response.json() == {'message': 'Instance deleted successfully!'}
+        assert deleted_response.status_code == status.HTTP_204_NO_CONTENT
+        assert deleted_response.text == ''
         assert undo_response.status_code == status.HTTP_200_OK
         assert undo_response.json() == {'message': 'Instance restored successfully!'}
         assert get_response.status_code == status.HTTP_200_OK
@@ -185,8 +185,8 @@ class UndoMech(unittest.TestCase):
         assert first_response.json() == {'message': 'Instance updated successfully!'}
         assert second_response.status_code == status.HTTP_200_OK
         assert second_response.json() == {'message': 'Instance updated successfully!'}
-        assert deleted_response.status_code == status.HTTP_200_OK
-        assert deleted_response.json() == {'message': 'Instance deleted successfully!'}
+        assert deleted_response.status_code == status.HTTP_204_NO_CONTENT
+        assert deleted_response.text == ''
         assert undo_response.status_code == status.HTTP_200_OK
 
     def test_undo_wrong_id(self) -> None:
@@ -264,8 +264,8 @@ class UndoMech(unittest.TestCase):
 
         assert first_response.status_code == status.HTTP_200_OK
         assert first_response.json() == {'message': 'Instance updated successfully!'}
-        assert deleted_response.status_code == status.HTTP_200_OK
-        assert deleted_response.json() == {'message': 'Instance deleted successfully!'}
+        assert deleted_response.status_code == status.HTTP_204_NO_CONTENT
+        assert deleted_response.text == ''
         assert undo_response.status_code == status.HTTP_200_OK
         assert undo_response_2.status_code == status.HTTP_200_OK
 

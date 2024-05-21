@@ -132,6 +132,30 @@ class TestPost(unittest.TestCase):
             ]
         }
 
+    def test_invalid_date_value(self) -> None:
+        """Test invalid date format."""
+        response = client.post(
+            '/create-task/',
+            json={
+                'title': 'Test Task NO created_by',
+                'description': 'month is 99',
+                'status': 'pending',
+                'due_date': '2022-99-31',
+            },
+        )
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.json() == {
+            'detail': [
+                {
+                    'type': 'value_error',
+                    'loc': ['body', 'due_date'],
+                    'msg': "Value error, Invalid date format. Must be in 'YYYY-MM-DD' format.",
+                    'input': '2022-99-31',
+                    'ctx': {'error': {}},
+                }
+            ]
+        }
+
     def test_invalid_status(self) -> None:
         """Test invalid status."""
         response = client.post(

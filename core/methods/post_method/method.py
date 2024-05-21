@@ -14,10 +14,7 @@ def create_task(task_input: GenericTaskInput) -> TaskSuccessMessage:
     """Endpoint to create a task."""
     # Instantiate the logic class
     task_repository = TaskRepository()
-    try:
-        task_repository.create_task(task_input)
-    except ValidationError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e) from e
+    task_repository.create_task(task_input)
 
     return TaskSuccessMessage(
         message='Instance created successfully!',
