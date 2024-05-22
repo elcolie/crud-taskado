@@ -157,14 +157,13 @@ def validate_status(str_status: str) -> StatusEnum | None:
     for _status in StatusEnum:
         if _status.value == str_status:
             return _status
-    return
+    return None
 
 
-def validate_username(str_username: str) -> User | None:
+def validate_username(str_username: str) -> User:
     """Validate the username."""
     with Session(engine) as session:
         user = session.query(User).filter(User.username == str_username).first()
         if user is None:
             raise ValueError('User does not exist.')
         return user
-    return
