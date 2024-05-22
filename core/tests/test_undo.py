@@ -108,7 +108,7 @@ class UndoMech(unittest.TestCase):
             )
             assert history.is_deleted is False
             assert history.title == 'Test Task with created_by'
-            assert history.DESCRIPTION == 'This is a test task'
+            assert history.description == 'This is a test task'
             assert history.status == StatusEnum.PENDING
             assert history.due_date == date(2022, 12, 31)
             assert history.created_by == 10
