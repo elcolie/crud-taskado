@@ -41,11 +41,11 @@ DESCRIPTION = """
 
 tags_metadata = [
     {
-        'name': "tasks",
-        'description': "CRUD operations"},
+        'name': 'tasks',
+        'description': 'CRUD operations'},
     {
-        'name': "undo",
-        'description': "Undo the last UPDATE, DELETE to the task",
+        'name': 'undo',
+        'description': 'Undo the last UPDATE, DELETE to the task',
     }
 ]
 
@@ -55,13 +55,13 @@ app = FastAPI(
     version='0.0.1',
     terms_of_service='https://creativecommons.org/terms/',
     contact={
-        'name': "Sarit",
-        'url': "https://github.com/elcolie",
-        'email': "cs.sarit@gmail.com"
+        'name': 'Sarit',
+        'url': 'https://github.com/elcolie',
+        'email': 'cs.sarit@gmail.com'
     },
     license_info={
-        'name': "Apache 2.0",
-        'url': "https://www.apache.org/licenses/LICENSE-2.0.html"
+        'name': 'Apache 2.0',
+        'url': 'https://www.apache.org/licenses/LICENSE-2.0.html'
     },
     openapi_tags=tags_metadata,
     openapi_url='/api/v1/openapi.json',

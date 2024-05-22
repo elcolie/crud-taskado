@@ -160,10 +160,11 @@ def validate_status(str_status: str) -> StatusEnum | None:
     return
 
 
-def validate_username(str_username: str) -> User:
+def validate_username(str_username: str) -> User | None:
     """Validate the username."""
     with Session(engine) as session:
         user = session.query(User).filter(User.username == str_username).first()
         if user is None:
             raise ValueError('User does not exist.')
         return user
+    return
