@@ -1,9 +1,6 @@
 """POST method to create task."""
 import logging
 
-from fastapi import HTTPException, status
-from pydantic import ValidationError
-
 from core.common.validate_input import GenericTaskInput, TaskSuccessMessage
 from core.methods.crud import TaskRepository
 

@@ -1,8 +1,6 @@
 """GET detail of task."""
 import logging
 
-from fastapi import HTTPException, status
-
 from core.common.serializers import TaskContentSchema
 from core.common.validate_input import UpdateTask
 from core.methods.crud import TaskRepository

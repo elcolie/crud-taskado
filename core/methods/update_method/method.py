@@ -1,10 +1,7 @@
 """Update method to update a task."""
 import logging
 
-from fastapi import HTTPException, status
-from pydantic import ValidationError
-
-from core.common.validate_input import (ErrorDetail, TaskSuccessMessage,
+from core.common.validate_input import (TaskSuccessMessage,
                                         TaskValidationError, UpdateTask)
 from core.methods.crud import TaskRepository
 

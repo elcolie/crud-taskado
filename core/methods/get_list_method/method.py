@@ -97,7 +97,7 @@ def list_tasks(
             {
                 'id': _task[1].id,
                 'title': _task[1].title,
-                'description': _task[1].description,
+                'description': _task[1].DESCRIPTION,
                 'due_date': _task[1].due_date,
                 'status': _task[1].status,
                 'created_by': _task[0].created_by,

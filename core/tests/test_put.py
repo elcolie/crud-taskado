@@ -74,7 +74,7 @@ class TestPut(unittest.TestCase):
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {'message': 'Instance updated successfully!'}
         assert last_task_content.title == 'New updated title'
-        assert last_task_content.description == 'New desc'
+        assert last_task_content.DESCRIPTION == 'New desc'
         assert last_task_content.status == StatusEnum.COMPLETED
         assert last_task_content.due_date == datetime.date(2333, 12, 31)
         assert last_task_content.created_by == user_id

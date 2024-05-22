@@ -2,7 +2,7 @@
 import typing as typ
 from datetime import date, datetime
 
-from pydantic import BaseModel, ValidationError, field_validator, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import exists
 from sqlmodel import Session
 
@@ -152,11 +152,12 @@ def validate_due_date(str_due_date: str) -> typ.Optional[date]:
     return date(int(year), int(month), int(day))
 
 
-def validate_status(str_status: str) -> StatusEnum:
+def validate_status(str_status: str) -> StatusEnum | None:
     """Validate the status."""
     for _status in StatusEnum:
         if _status.value == str_status:
             return _status
+    return
 
 
 def validate_username(str_username: str) -> User:

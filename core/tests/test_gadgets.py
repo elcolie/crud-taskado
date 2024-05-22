@@ -1,5 +1,4 @@
 """The utilities for testing the gadgets module."""
-import typing as typ
 
 from fastapi import status
 from fastapi.testclient import TestClient

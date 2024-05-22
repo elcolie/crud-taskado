@@ -3,7 +3,7 @@ import logging
 import typing as typ
 from enum import Enum
 
-from fastapi import Depends, FastAPI, status, Body
+from fastapi import Body, Depends, FastAPI, status
 # import all you need from fastapi-pagination
 from fastapi_pagination import Page, add_pagination, paginate
 
@@ -29,7 +29,7 @@ logging.basicConfig(
 # Create a logger object
 logger = logging.getLogger(__name__)
 
-description = """
+DESCRIPTION = """
 **CRUD Taskado** todo Task API with undo feature.
 
 - You need to create an user before creating a task.
@@ -40,88 +40,88 @@ description = """
 """
 
 tags_metadata = [
-    dict(
-        name="tasks",
-        description="CRUD operations",
-    ),
-    dict(
-        name="undo",
-        description="Undo the last UPDATE, DELETE to the task",
-    )
+    {
+        'name': "tasks",
+        'description': "CRUD operations"},
+    {
+        'name': "undo",
+        'description': "Undo the last UPDATE, DELETE to the task",
+    }
 ]
 
-
 app = FastAPI(
-    title="CRUD Taskado todo Task API",
-    description=description,
+    title='CRUD Taskado todo Task API',
+    description=DESCRIPTION,
     version='0.0.1',
-    terms_of_service="https://creativecommons.org/terms/",
-    contact=dict(
-        name="Sarit",
-        url="https://github.com/elcolie",
-        email="cs.sarit@gmail.com"
-    ),
-    license_info=dict(
-        name="Apache 2.0",
-        url="https://www.apache.org/licenses/LICENSE-2.0.html"
-    ),
+    terms_of_service='https://creativecommons.org/terms/',
+    contact={
+        'name': "Sarit",
+        'url': "https://github.com/elcolie",
+        'email': "cs.sarit@gmail.com"
+    },
+    license_info={
+        'name': "Apache 2.0",
+        'url': "https://www.apache.org/licenses/LICENSE-2.0.html"
+    },
     openapi_tags=tags_metadata,
-    openapi_url="/api/v1/openapi.json",
+    openapi_url='/api/v1/openapi.json',
 )
 
 
 class Tags(Enum):
-    tasks = "tasks"
-    undo = "undo"
+    """Enum class of tags."""
+    TASKS = 'tasks'
+    UNDO = 'undo'
 
 
 @app.post('/create-task/',
-          summary="Create todo task",
+          summary='Create todo task',
           status_code=status.HTTP_201_CREATED,
           response_model=TaskSuccessMessage,
-          tags=[Tags.tasks]
+          tags=[Tags.TASKS]
           )
 async def _create_task(
     task_input: typ.Annotated[
         GenericTaskInput,
         Body(
             openapi_examples={
-                "normal": {
-                    "summary": "Create a task",
-                    "description": "Create a task with all fields",
-                    "value": {
-                        "description": "Nice item",
-                        "title": "Buy a pickled plum juice",
-                        "status": "pending",
-                        "due_date": "2022-12-31",
-                        "created_by": 1
+                'normal': {
+                    'summary': 'Create a task',
+                    'description': 'Create a task with all fields',
+                    'value': {
+                        'description': 'Nice item',
+                        'title': 'Buy a pickled plum juice',
+                        'status': 'pending',
+                        'due_date': '2022-12-31',
+                        'created_by': 1
                     }
                 },
-                "invalid_due_date": {
-                    "name": "Invalid due date",
-                    "description": "due_date format is YYYY-MM-DD",
-                    "value": {
-                        "title": "Buy a pickled plum juice smoothie",
-                        "description": "Good for health",
-                        "status": "pending",
-                        "due_date": "2022-99-31",
-                        "created_by": 1
+                'invalid_due_date': {
+                    'name': 'Invalid due date',
+                    'description': 'due_date format is YYYY-MM-DD',
+                    'value': {
+                        'title': 'Buy a pickled plum juice smoothie',
+                        'description': 'Good for health',
+                        'status': 'pending',
+                        'due_date': '2022-99-31',
+                        'created_by': 1
                     }
                 },
-                "invalid_status": {
-                    "name": "Invalid status",
-                    "description": "Status must be either 'pending', 'in_progress' or 'done'",
-                    "value": {
-                        "title": "Buy a pickled plum juice",
-                        "description": "Nice item",
-                        "status": "done",
-                        "due_date": "2022-12-31",
-                        "created_by": 1
+                'invalid_status': {
+                    'name': 'Invalid status',
+                    'description': "Status must be either 'pending', 'in_progress' or 'done'",
+                    'value': {
+                        'title': 'Buy a pickled plum juice',
+                        'description': 'Nice item',
+                        'status': 'done',
+                        'due_date': '2022-12-31',
+                        'created_by': 1
                     }
                 }
             }
         )
-    ]) -> typ.Any:
+    ]
+) -> typ.Any:
     """
     Endpoint to create a task.
 
@@ -135,8 +135,8 @@ async def _create_task(
 
 
 @app.delete('/{task_id}',
-            summary="Delete todo task",
-            status_code=status.HTTP_204_NO_CONTENT, tags=[Tags.tasks])
+            summary='Delete todo task',
+            status_code=status.HTTP_204_NO_CONTENT, tags=[Tags.TASKS])
 async def _delete_task(task_id: CurrentTaskContent = Depends(valid_task)) -> None:
     """
     Endpoint to delete a task.
@@ -148,8 +148,8 @@ async def _delete_task(task_id: CurrentTaskContent = Depends(valid_task)) -> Non
 
 
 @app.get('/{task_id}',
-         summary="Get task detail",
-         response_model=UpdateTask, tags=[Tags.tasks])
+         summary='Get task detail',
+         response_model=UpdateTask, tags=[Tags.TASKS])
 async def _get_task(task_id: CurrentTaskContent = Depends(valid_task)) -> typ.Any:
     """
     Endpoint to get a task detail.
@@ -160,8 +160,8 @@ async def _get_task(task_id: CurrentTaskContent = Depends(valid_task)) -> typ.An
 
 
 @app.get('/',
-         summary="List tasks",
-         response_model=Page[SummaryTask], tags=[Tags.tasks])
+         summary='List tasks',
+         response_model=Page[SummaryTask], tags=[Tags.TASKS])
 async def _list_tasks(
     commons: typ.Annotated[
         ConcreteCommonTaskQueryParams,
@@ -180,8 +180,8 @@ async def _list_tasks(
 
 
 @app.post('/undo/{task_id}',
-          summary="Undo task",
-          response_model=TaskSuccessMessage, tags=[Tags.undo])
+          summary='Undo task',
+          response_model=TaskSuccessMessage, tags=[Tags.UNDO])
 async def _undo_task(task_id: CheckTaskId = Depends(valid_undo_task)) -> typ.Any:
     """
     description="Undo last UPDATE, DELETE to the task",
@@ -192,47 +192,49 @@ async def _undo_task(task_id: CheckTaskId = Depends(valid_undo_task)) -> typ.Any
 
 
 @app.put('/',
-         summary="Update task",
-         description="Make another revision of the task", response_model=TaskSuccessMessage, tags=[Tags.tasks])
+         summary='Update task',
+         description='Make another revision of the task',
+         response_model=TaskSuccessMessage,
+         tags=[Tags.TASKS])
 async def _update_task(
     payload: typ.Annotated[
         UpdateTask,
         Body(
             openapi_examples={
-                "normal": {
-                    "summary": "Update a task",
-                    "description": "Update a task with all fields",
-                    "value": {
-                        "id": 1,
-                        "title": "Buy a pickled plum juice",
-                        "description": "Nice item",
-                        "status": "pending",
-                        "due_date": "2022-12-31",
-                        "created_by": 1
+                'normal': {
+                    'summary': 'Update a task',
+                    'description': 'Update a task with all fields',
+                    'value': {
+                        'id': 1,
+                        'title': 'Buy a pickled plum juice',
+                        'description': 'Nice item',
+                        'status': 'pending',
+                        'due_date': '2022-12-31',
+                        'created_by': 1
                     }
                 },
-                "invalid_due_date": {
-                    "name": "Invalid due date",
-                    "description": "due_date format is YYYY-MM-DD",
-                    "value": {
-                        "id": 1,
-                        "title": "Buy a pickled plum juice smoothie",
-                        "description": "Good for health",
-                        "status": "pending",
-                        "due_date": "2022-99-31",
-                        "created_by": 1
+                'invalid_due_date': {
+                    'name': 'Invalid due date',
+                    'description': 'due_date format is YYYY-MM-DD',
+                    'value': {
+                        'id': 1,
+                        'title': 'Buy a pickled plum juice smoothie',
+                        'description': 'Good for health',
+                        'status': 'pending',
+                        'due_date': '2022-99-31',
+                        'created_by': 1
                     }
                 },
-                "invalid_status": {
-                    "name": "Invalid status",
-                    "description": "Status must be either 'pending', 'in_progress' or 'done'",
-                    "value": {
-                        "id": 1,
-                        "title": "Buy a pickled plum juice",
-                        "description": "Nice item",
-                        "status": "done",
-                        "due_date": "2022-12-31",
-                        "created_by": 1
+                'invalid_status': {
+                    'name': 'Invalid status',
+                    'description': "Status must be either 'pending', 'in_progress' or 'done'",
+                    'value': {
+                        'id': 1,
+                        'title': 'Buy a pickled plum juice',
+                        'description': 'Nice item',
+                        'status': 'done',
+                        'due_date': '2022-12-31',
+                        'created_by': 1
                     }
                 }
             }

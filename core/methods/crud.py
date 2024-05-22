@@ -8,7 +8,9 @@ from sqlalchemy import desc, func
 from sqlmodel import Session
 
 from app import engine
-from core.common.validate_input import (CheckTaskId, GenericTaskInput, UndoError, UpdateTask, parse_date)
+from core.common.validate_input import (
+    CheckTaskId, GenericTaskInput,
+    UndoError, UpdateTask, parse_date)
 from core.methods.get_list_method.get_queryset import get_queryset
 from core.models.models import (CurrentTaskContent, StatusEnum, TaskContent,
                                 User)
